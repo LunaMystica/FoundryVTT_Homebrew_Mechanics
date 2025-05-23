@@ -1,8 +1,9 @@
 import { endurance } from './lib/utils.js';
 import { soulstrike } from './lib/utils.js';
+import { dev } from './lib/utils.js';
 
 Hooks.once('init', async function () {
-	game.settings.register('homebrew-mechanics', 'endurance-toggle', {
+	game.settings.register('xeno-homebrew-mechanics', 'endurance-toggle', {
 		name: 'Endurance Toggle',
 		hint: 'Toggles the automation of the Endurance system.',
 		scope: 'world',
@@ -10,9 +11,8 @@ Hooks.once('init', async function () {
 		type: Boolean,
 		default: true,
 		requiresReload: false,
-		filePicker: 'any',
 	});
-	game.settings.register('homebrew-mechanics', 'soulstrike-toggle', {
+	game.settings.register('xeno-homebrew-mechanics', 'soulstrike-toggle', {
 		name: 'Soulstrike Toggle',
 		hint: 'Toggles the automation of the Soulstrike system.',
 		scope: 'world',
@@ -20,9 +20,8 @@ Hooks.once('init', async function () {
 		type: Boolean,
 		default: true,
 		requiresReload: false,
-		filePicker: 'any',
 	});
-	game.settings.register('homebrew-mechanics', 'debug', {
+	game.settings.register('xeno-homebrew-mechanics', 'debug-toggle', {
 		name: 'Debug',
 		hint: 'Toggles debug mode.',
 		scope: 'world',
@@ -30,9 +29,8 @@ Hooks.once('init', async function () {
 		type: Boolean,
 		default: false,
 		requiresReload: false,
-		filePicker: 'any',
 	});
-	game.settings.register('homebrew-mechanics', 'debug-chat', {
+	game.settings.register('xeno-homebrew-mechanics', 'debug-chat', {
 		name: 'Debug Chat Messages',
 		hint: 'Toggles debug chat messages instead of console log.',
 		scope: 'world',
@@ -40,25 +38,28 @@ Hooks.once('init', async function () {
 		type: Boolean,
 		default: false,
 		requiresReload: false,
-		filePicker: 'any',
 	});
 });
 
-Hooks.once('ready', async function () {
-	console.log(game.i18n.localize('MODULE.hello'));
+Hooks.on('ready', async () => {
+	globalThis['xenoHomebrewMechanics'] = {
+		endurance,
+		soulstrike,
+		dev,
+	};
 });
 
 Hooks.on('midi-qol.RollComplete', async (workflow) => {
-	const { hitTargets } = workflow;
-	console.log(hitTargets);
-	if (hitTargets.length === 0) return;
+	await new Promise((resolve) => setTimeout(resolve, 1000));
 
-	if (game.settings.get('homebrew-mechanics', 'endurance-toggle')) {
+	const hitTargets = workflow.hitTargets;
+	if (hitTargets.size <= 0) return;
+
+	if (game.settings.get('xeno-homebrew-mechanics', 'endurance-toggle')) {
 		await endurance.checkEndurance(hitTargets, workflow);
 	}
 
-	if (game.settings.get('homebrew-mechanics', 'soulstrike-toggle')) {
-		console.log(workflow);
+	if (game.settings.get('xeno-homebrew-mechanics', 'soulstrike-toggle')) {
 		await soulstrike.calculateSoulstrike(workflow);
 	}
 });

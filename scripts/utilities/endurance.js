@@ -3,10 +3,9 @@ const {
 } = chrisPremades;
 import { damageTypeFeatures } from '../../constants/damageTypeFeatures.js';
 import { endurance_broken_effect } from '../../constants/effects.js';
-import { createChatMessage } from './dev.js';
+import { dev } from './dev.js';
 
-const debug = game.settings.get('homebrew-mechanics', 'debug');
-const chatDebug = game.settings.get('homebrew-mechanics', 'debug-chat');
+let chatMessages = [];
 
 /**
  * Iterate over the hit targets and for each, update its Endurance, if appropriate.
@@ -18,16 +17,23 @@ const chatDebug = game.settings.get('homebrew-mechanics', 'debug-chat');
  *   The workflow that hit the combatants.
  */
 async function checkEndurance(hitTargets, workflow) {
+	chatMessages = ['<h3>Endurance:</h3>'];
+
 	let brokenTargets = [];
 	for (const target of hitTargets) {
 		brokenTargets = await updateEndurance(target, workflow, brokenTargets);
 	}
+	if (chatMessages.length > 1) {
+		const chatMessage = chatMessages.join('<br>');
 
+		await dev.log(chatMessage);
+	}
 	if (!brokenTargets || brokenTargets.length === 0) {
 		return;
 	}
-
 	await processBrokenTargets(brokenTargets, workflow, damageTypeFeatures);
+
+	return;
 }
 
 async function updateEndurance(target, workflow, brokenTargets = []) {
@@ -60,15 +66,11 @@ async function updateEndurance(target, workflow, brokenTargets = []) {
 			'system.uses.spent': simulatedEndurance,
 		});
 
+		chatMessages.push(
+			`<b>${target.name}</b>: ${enduranceItem.system.uses.value}/${enduranceItem.system.uses.max} | (<span style="color:red">-${enduranceReduction}</span>)` +
+				(enduranceBroken ? ' (broken)' : '')
+		);
 		break;
-	}
-
-	if (debug) {
-		if (chatDebug) {
-			await createChatMessage(`${target.name} endurance: ${enduranceItem.system.uses.spent}/${enduranceItem.system.uses.max}`);
-		} else {
-			console.log(`${target.name} endurance: ${enduranceItem.system.uses.spent}/${enduranceItem.system.uses.max}`);
-		}
 	}
 
 	return brokenTargets;
@@ -142,6 +144,8 @@ async function processBrokenTargets(brokenTargets, workflow, damageTypeFeatures)
 
 		await workflowUtils.syntheticActivityDataRoll(activityData, sourceItem, workflow.actor, targets);
 	}
+
+	return;
 }
 
 export let endurance = {

@@ -2,9 +2,6 @@
 const {utils: {genericUtils}} = chrisPremades;
 import { dev } from './dev.js';
 
-const debug = game.settings.get('homebrew-mechanics', 'debug');
-const chatDebug = game.settings.get('homebrew-mechanics', 'debug-chat');
-
 /**
  * Iterate over the hit targets and for each, calculate the
  * appropriate number of Soulstrike uses to grant to the
@@ -16,51 +13,67 @@ const chatDebug = game.settings.get('homebrew-mechanics', 'debug-chat');
  *   The workflow that hit the combatants.
  */
 async function calculateSoulstrike(workflow) {
+	let chatMessages = ['<h3>Soulstrike:</h3>'];
 	const sourceItem = workflow.actor.items.getName('Soulstrike');
-	if (!sourceItem) return;
 
-	let totalIncrement = 0;
-	const itemBlacklist = new Set(['Blessed Healer', 'Flames of Madness']);
-	const sectionsBlacklist = new Set(['Soulstrike Burst']);
+	if (sourceItem) {
+		let totalIncrement = 0;
 
-	const { name: itemName, flags } = workflow.item;
-	const itemSection = flags['tidy5e-sheet']?.section;
+		const itemBlacklist = new Set(['Blessed Healer', 'Flames of Madness']);
+		const sectionsBlacklist = new Set(['Soulstrike Burst', 'Weakness Break']);
 
-	if (!itemBlacklist.has(itemName) && !sectionsBlacklist.has(itemSection)) {
-		totalIncrement = workflow.hitTargets.length * 5;
-	}
+		const { name: itemName, flags } = workflow.item;
+		const itemSection = flags['tidy5e-sheet']?.section;
 
-	const newUsesValue = Math.max(sourceItem.system.uses.spent - totalIncrement, 0);
-	await genericUtils.update(sourceItem, {
-		'system.uses.spent': newUsesValue,
-	});
+		if (workflow.hitTargets.size <= 0) return;
 
-	if (debug) {
-		if (chatDebug) {
-			await dev.createChatMessage(`Soulstrike: ${workflow.actor.name} gained ${totalIncrement} Soulstrike uses.`);
+		if (!itemBlacklist.has(itemName) && !sectionsBlacklist.has(itemSection)) {
+			totalIncrement = workflow.hitTargets.size * 5;
 		}
-		console.log(`Soulstrike: ${workflow.actor.name} gained ${totalIncrement} Soulstrike uses.`);
-	}
 
+		if (totalIncrement <= 0 || isNaN(totalIncrement)) return;
+
+		const newUsesValue = Math.max(sourceItem.system.uses.spent - totalIncrement, 0);
+
+		await genericUtils.update(sourceItem, {
+			'system.uses.spent': newUsesValue,
+		});
+
+		chatMessages.push(
+			`<b>${workflow.actor.name}</b>: ${sourceItem.system.uses.value}/${sourceItem.system.uses.max} | (<span style="color:green">+${totalIncrement}</span>)<hr>`
+		);
+	}
 	const updatePromises = workflow.damageList.map(async (target) => {
 		const targetActor = await fromUuid(target.actorUuid);
 		const targetItem = targetActor.items.getName('Soulstrike');
 		if (!targetItem || target.hpDamage <= 0) return;
 
-		const newTargetUsesValue = targetItem.system.uses.spent - target.hpDamage * 2;
+		let targetUsesValue = targetItem.system.uses.spent;
+
+		targetUsesValue = Math.min(targetUsesValue, targetItem.system.uses.max);
+		targetUsesValue -= target.hpDamage * 2;
+
+		console.log(targetUsesValue);
+		console.log(workflow);
+		console.log(targetItem);
 		await genericUtils.update(targetItem, {
-			'system.uses.spent': newTargetUsesValue,
+			'system.uses.spent': targetUsesValue,
 		});
 
-		if (debug) {
-			if (chatDebug) {
-				await dev.createChatMessage(`Soulstrike: ${target.name} gained ${target.hpDamage * 2} Soulstrike uses.`);
-			}
-			console.log(`Soulstrike: ${target.name} gained ${target.hpDamage * 2} Soulstrike uses.`);
-		}
+		chatMessages.push(
+			`<b>${targetActor.name}</b>: ${targetItem.system.uses.value}/${targetItem.system.uses.max} | (+<span style="color:green">${
+				target.hpDamage * 2
+			}</span>)`
+		);
 	});
 
 	await Promise.all(updatePromises);
+
+	if (chatMessages.length > 1) {
+		const chatMessage = chatMessages.join('<br>');
+		await dev.log(chatMessage);
+	}
+	return;
 }
 
 export let soulstrike = { calculateSoulstrike };

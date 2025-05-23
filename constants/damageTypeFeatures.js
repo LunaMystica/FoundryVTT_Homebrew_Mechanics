@@ -16,9 +16,5 @@ const feats = {
 
 const compendium_base = 'Compendium.my-shared-compendia.feats.Item';
 
-export const damageTypeFeatures = Object.fromEntries(
-	Object.entries(feats).map(([type, id]) => [
-		type.toLowerCase(),
-		`${compendium_base}.${id}`,
-	])
-);
+export const damageTypeFeatures = Object.fromEntries(Object.entries(feats).map(([type, id]) => [type.toLowerCase(), `${compendium_base}.${id}`]));
+
