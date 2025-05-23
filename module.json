@@ -1,12 +1,12 @@
 {
-	"id": "homebrew-mechanics",
-	"title": "Homebrew Mechanics",
+	"id": "xeno-homebrew-mechanics",
+	"title": "Xeno Homebrew Mechanics",
 	"description": "Homebrew Mechanics",
 	"version": "#{VERSION}#",
 	"library": "false",
 	"compatibility": {
-		"minimum": 10,
-		"verified": 10,
+		"minimum": 12,
+		"verified": 12,
 		"maximum": 13
 	},
 	"authors": [
