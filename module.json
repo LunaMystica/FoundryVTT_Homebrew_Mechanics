@@ -39,7 +39,7 @@
 		{
 			"lang": "en",
 			"name": "English",
-			"path": "languages/en.json"
+			"path": "language/en.json"
 		}
 	],
 	"url": "#{URL}#",
