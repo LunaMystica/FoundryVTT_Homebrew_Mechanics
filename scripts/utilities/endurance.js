@@ -67,7 +67,7 @@ async function updateEndurance(target, workflow, brokenTargets = []) {
 		});
 
 		chatMessages.push(
-			`<b>${target.name}</b>: ${enduranceItem.system.uses.value}/${enduranceItem.system.uses.max} | (<span style="color:red">-${enduranceReduction}</span>)` +
+			`<b>${target.name}</b>: ${enduranceItem.system.uses.value}/${enduranceItem.system.uses.max} | (<span style="color:red">-${enduranceReduction}</span>) | ${damage.options.type}` +
 				(enduranceBroken ? ' (broken)' : '')
 		);
 		break;
