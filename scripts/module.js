@@ -22,6 +22,26 @@ Hooks.once('init', async function () {
 		requiresReload: false,
 		filePicker: 'any',
 	});
+	game.settings.register('homebrew-mechanics', 'debug', {
+		name: 'Debug',
+		hint: 'Toggles debug mode.',
+		scope: 'world',
+		config: true,
+		type: Boolean,
+		default: false,
+		requiresReload: false,
+		filePicker: 'any',
+	});
+	game.settings.register('homebrew-mechanics', 'debug-chat', {
+		name: 'Debug Chat Messages',
+		hint: 'Toggles debug chat messages instead of console log.',
+		scope: 'world',
+		config: true,
+		type: Boolean,
+		default: false,
+		requiresReload: false,
+		filePicker: 'any',
+	});
 });
 
 Hooks.once('ready', async function () {

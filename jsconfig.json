@@ -1,0 +1,8 @@
+{
+    "include": [
+        "foundry/**/*.mjs",
+        "foundry/client/",
+        "foundry/client-esm/",
+        "foundry/common/"
+    ]
+}
