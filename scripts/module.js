@@ -30,9 +30,9 @@ Hooks.once('init', async function () {
 		default: false,
 		requiresReload: false,
 	});
-	game.settings.register('xeno-homebrew-mechanics', 'debug-chat', {
+	game.settings.register('xeno-homebrew-mechanics', 'chat-message-toggle', {
 		name: 'Debug Chat Messages',
-		hint: 'Toggles debug chat messages instead of console log.',
+		hint: 'Toggles messages in chat for Soulstrike and Endurance.',
 		scope: 'world',
 		config: true,
 		type: Boolean,
