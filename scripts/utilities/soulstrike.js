@@ -62,7 +62,7 @@ async function calculateSoulstrike(workflow) {
 
 		chatMessages.push(
 			`<b>${targetActor.name}</b>: ${targetItem.system.uses.value}/${targetItem.system.uses.max} | (+<span style="color:green">${
-				target.hpDamage * 2
+				target.hpDamage * 1
 			}</span>)`
 		);
 	});
