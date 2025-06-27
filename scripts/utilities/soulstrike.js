@@ -51,7 +51,7 @@ async function calculateSoulstrike(workflow) {
 		let targetUsesValue = targetItem.system.uses.spent;
 
 		targetUsesValue = Math.min(targetUsesValue, targetItem.system.uses.max);
-		targetUsesValue -= target.hpDamage * 2;
+		targetUsesValue -= target.hpDamage * 1;
 
 		console.log(targetUsesValue);
 		console.log(workflow);
