@@ -7,7 +7,9 @@ async function log(messageContent) {
 
 		await ChatMessage.create({
 			content: messageContent,
-			speaker: ChatMessage.getSpeaker(),
+			speaker: {
+				alias: 'Homebrew Mechanics',
+			},
 			whisper: ChatMessage.getWhisperRecipients('GM'),
 		});
 	}

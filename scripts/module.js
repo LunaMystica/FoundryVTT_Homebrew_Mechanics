@@ -39,6 +39,15 @@ Hooks.once('init', async function () {
 		default: false,
 		requiresReload: false,
 	});
+	game.settings.register('xeno-homebrew-mechanics', 'hide-messages-toggle', {
+		name: 'Hide Messages Toggle',
+		hint: 'Toggles the hiding of messages in the chat.',
+		scope: 'world',
+		config: true,
+		type: Boolean,
+		default: false,
+		requiresReload: false,
+	});
 	game.settings.register('xeno-homebrew-mechanics', 'force-reload', {
 		name: 'Force Reload',
 		hint: 'Triggers a reload of the game.',
@@ -57,6 +66,11 @@ Hooks.on('ready', async () => {
 		soulstrike,
 		dev,
 	};
+});
+
+Hooks.on('renderChatMessage', (message, [html]) => {
+	if (!game.user.isGM && game.settings.get('xeno-homebrew-mechanics', 'hide-messages-toggle') && message.speaker.alias === 'Homebrew Mechanics')
+		html.style.display = 'none';
 });
 
 Hooks.on('midi-qol.RollComplete', async (workflow) => {
