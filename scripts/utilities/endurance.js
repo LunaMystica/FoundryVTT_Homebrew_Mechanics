@@ -55,7 +55,7 @@ async function updateEndurance(target, workflow, brokenTargets = []) {
 		if (!weaknesses.has(damage.options.type)) continue;
 
 		simulatedEndurance += enduranceReduction;
-		if (simulatedEndurance > enduranceItem.system.uses.max) {
+		if (simulatedEndurance >= enduranceItem.system.uses.max) {
 			simulatedEndurance = enduranceItem.system.uses.max;
 			enduranceBroken = true;
 			brokenTargets.push({ target, damageType: damage.options.type });
