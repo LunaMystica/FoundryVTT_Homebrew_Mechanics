@@ -148,9 +148,22 @@ async function processBrokenTargets(brokenTargets, workflow, damageTypeFeatures)
 	return;
 }
 
+/**
+ * Reset an actor's Endurance to 0.
+ * @param {Actor} actor
+ *   The actor whose Endurance should be reset.
+ */
+async function resetEndurance(actor) {
+	const item = actor.items.getName('Endurance');
+
+	if (!item) return;
+	await genericUtils.update(item, { 'system.uses.spent': 0 });
+}
+
 export let endurance = {
 	checkEndurance,
 	updateEndurance,
 	calculateEnduranceReduction,
 	processBrokenTargets,
+	resetEndurance,
 };

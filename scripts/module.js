@@ -87,3 +87,10 @@ Hooks.on('midi-qol.RollComplete', async (workflow) => {
 		await soulstrike.calculateSoulstrike(workflow);
 	}
 });
+
+Hooks.on('deleteCombat', async (combat) => {
+	if (!game.user.isGM) return;
+	for (let combatant of combat.combatants) {
+		endurance.resetEndurance(combatant.actor);
+	}
+});
