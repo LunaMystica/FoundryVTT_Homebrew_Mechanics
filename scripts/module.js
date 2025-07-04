@@ -31,7 +31,7 @@ Hooks.once('init', async function () {
 		requiresReload: false,
 	});
 	game.settings.register('xeno-homebrew-mechanics', 'chat-message-toggle', {
-		name: 'Debug Chat Messages',
+		name: 'Toggle Chat Messages',
 		hint: 'Toggles messages in chat for Soulstrike and Endurance.',
 		scope: 'world',
 		config: true,
@@ -39,6 +39,16 @@ Hooks.once('init', async function () {
 		default: false,
 		requiresReload: false,
 	});
+	game.settings.register('xeno-homebrew-mechanics', 'force-reload', {
+		name: 'Force Reload',
+		hint: 'Triggers a reload of the game.',
+		scope: 'world',
+		config: true,
+		type: Boolean,
+		default: false,
+		requiresReload: true,
+	});
+	console.log('xeno-homebrew-mechanics | Loaded');
 });
 
 Hooks.on('ready', async () => {
