@@ -25,9 +25,12 @@ async function calculateSoulstrike(workflow) {
 		const { name: itemName, flags } = workflow.item;
 		const itemSection = flags['tidy5e-sheet']?.section;
 
+		itemName = itemName.trimEnd();
+		itemSection = itemSection?.trimEnd();
+
 		if (workflow.hitTargets.size <= 0) return;
 
-		if (!itemBlacklist.has(itemName) && !sectionsBlacklist.has(itemSection)) {
+		if (!itemBlacklist.has(itemName) || !sectionsBlacklist.has(itemSection)) {
 			totalIncrement = workflow.hitTargets.size * 5;
 		}
 

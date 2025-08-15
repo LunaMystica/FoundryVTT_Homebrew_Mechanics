@@ -76,11 +76,11 @@ Hooks.on('renderChatMessage', (message, [html]) => {
 Hooks.on('midi-qol.RollComplete', async (workflow) => {
 	await new Promise((resolve) => setTimeout(resolve, 1000));
 
-	const hitTargets = workflow.hitTargets;
-	if (hitTargets.size <= 0) return;
+	const damageList = workflow.damageList;
+	if (damageList.length <= 0) return;
 
 	if (game.settings.get('xeno-homebrew-mechanics', 'endurance-toggle')) {
-		await endurance.checkEndurance(hitTargets, workflow);
+		await endurance.checkEndurance(damageList, workflow);
 	}
 
 	if (game.settings.get('xeno-homebrew-mechanics', 'soulstrike-toggle')) {

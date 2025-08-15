@@ -11,16 +11,17 @@ let chatMessages = [];
  * Iterate over the hit targets and for each, update its Endurance, if appropriate.
  * If any of them are broken, create synthetic activity data rolls for each broken
  * target and damage type.
- * @param {Array<Combatant>} hitTargets
+ * @param {Array<Combatant>} damageList
  *   The list of combatants that were hit by the workflow.
  * @param {Workflow} workflow
  *   The workflow that hit the combatants.
  */
-async function checkEndurance(hitTargets, workflow) {
+async function checkEndurance(damageList, workflow) {
 	chatMessages = ['<h3>Endurance:</h3>'];
 
 	let brokenTargets = [];
-	for (const target of hitTargets) {
+	for (const target of damageList) {
+		if (target.tempDamage + target.hpDamage <= 0) continue;
 		brokenTargets = await updateEndurance(target, workflow, brokenTargets);
 	}
 	if (chatMessages.length > 1) {
@@ -37,7 +38,7 @@ async function checkEndurance(hitTargets, workflow) {
 }
 
 async function updateEndurance(target, workflow, brokenTargets = []) {
-	const targetActor = target.actor;
+	const targetActor = await fromUuid(target.actorUuid);
 	const enduranceReduction = await calculateEnduranceReduction(workflow.item);
 
 	if (enduranceReduction === 0) return brokenTargets;
@@ -53,12 +54,13 @@ async function updateEndurance(target, workflow, brokenTargets = []) {
 
 	for (const damage of workflow.damageRolls) {
 		if (!weaknesses.has(damage.options.type)) continue;
+		let tokenTarget = await fromUuid(target.targetUuid);
 
 		simulatedEndurance += enduranceReduction;
 		if (simulatedEndurance >= enduranceItem.system.uses.max) {
 			simulatedEndurance = enduranceItem.system.uses.max;
 			enduranceBroken = true;
-			brokenTargets.push({ target, damageType: damage.options.type });
+			brokenTargets.push({ tokenTarget, damageType: damage.options.type });
 			await effectUtils.createEffect(targetActor, endurance_broken_effect);
 		}
 
@@ -67,7 +69,7 @@ async function updateEndurance(target, workflow, brokenTargets = []) {
 		});
 
 		chatMessages.push(
-			`<b>${target.name}</b>: ${enduranceItem.system.uses.value}/${enduranceItem.system.uses.max} | (<span style="color:red">-${enduranceReduction}</span>) | ${damage.options.type}` +
+			`<b>${tokenTarget.name}</b>: ${enduranceItem.system.uses.value}/${enduranceItem.system.uses.max} | (<span style="color:red">-${enduranceReduction}</span>) | ${damage.options.type}` +
 				(enduranceBroken ? ' (broken)' : '')
 		);
 		break;
