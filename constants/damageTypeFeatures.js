@@ -14,7 +14,6 @@ const feats = {
 	THUNDER: 'Fgw6nIYPw3DIhemf',
 };
 
-const compendium_base = 'Compendium.my-shared-compendia.feats.Item';
+const base = 'Item';
 
-export const damageTypeFeatures = Object.fromEntries(Object.entries(feats).map(([type, id]) => [type.toLowerCase(), `${compendium_base}.${id}`]));
-
+export const damageTypeFeatures = Object.fromEntries(Object.entries(feats).map(([type, id]) => [type.toLowerCase(), `${base}.${id}`]));

@@ -22,8 +22,8 @@ async function calculateSoulstrike(workflow) {
 		const itemBlacklist = new Set(['Blessed Healer', 'Flames of Madness']);
 		const sectionsBlacklist = new Set(['Soulstrike Burst', 'Weakness Break']);
 
-		const { name: itemName, flags } = workflow.item;
-		const itemSection = flags['tidy5e-sheet']?.section;
+		let { name: itemName, flags } = workflow.item;
+		let itemSection = flags['tidy5e-sheet']?.section;
 
 		itemName = itemName.trimEnd();
 		itemSection = itemSection?.trimEnd();
@@ -43,7 +43,7 @@ async function calculateSoulstrike(workflow) {
 		});
 
 		chatMessages.push(
-			`<b>${workflow.actor.name}</b>: ${sourceItem.system.uses.value}/${sourceItem.system.uses.max} | (<span style="color:green">+${totalIncrement}</span>)<hr>`
+			`<b>${workflow.actor.name}</b>: ${sourceItem.system.uses.value}/${sourceItem.system.uses.max} | (<span style="color:green">+${totalIncrement}</span>)<hr>`,
 		);
 	}
 	const updatePromises = workflow.damageList.map(async (target) => {
@@ -63,7 +63,7 @@ async function calculateSoulstrike(workflow) {
 		chatMessages.push(
 			`<b>${targetActor.name}</b>: ${targetItem.system.uses.value}/${targetItem.system.uses.max} | (+<span style="color:green">${
 				target.hpDamage * 1
-			}</span>)`
+			}</span>)`,
 		);
 	});
 
