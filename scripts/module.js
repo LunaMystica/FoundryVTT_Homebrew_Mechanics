@@ -1,6 +1,6 @@
-import { endurance } from './lib/utils.js';
-import { soulstrike } from './lib/utils.js';
-import { dev } from './lib/utils.js';
+import { endurance, soulstrike, dev } from './lib/utils.js';
+
+let chatMessage = []
 
 Hooks.once('init', async function () {
 	game.settings.register('xeno-homebrew-mechanics', 'endurance-toggle', {
@@ -82,8 +82,13 @@ Hooks.on('midi-qol.RollComplete', async (workflow) => {
 	}
 
 	if (game.settings.get('xeno-homebrew-mechanics', 'soulstrike-toggle')) {
-		await soulstrike.calculateSoulstrike(workflow);
+		await soulstrike.calculateSoulstrike(workflow, chatMessage);
 	}
+});
+
+Hooks.once('dnd5e.applyDamage', (damageObject, damageValue, MidiObject) => {
+	console.log(damageValue)
+	// await soulstrike.calculateSoulstrikeDamageTaken(damageObject.actor, damageValue, MidiObject, chatMessage)
 });
 
 Hooks.on('deleteCombat', async (combat) => {

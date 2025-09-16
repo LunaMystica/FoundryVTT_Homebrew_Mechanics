@@ -12,11 +12,12 @@ import { dev } from './dev.js';
  * @param {Workflow} workflow
  *   The workflow that hit the combatants.
  */
-async function calculateSoulstrike(workflow) {
+async function calculateSoulstrike(workflow, chatMessage) {
 	let chatMessages = ['<h3>Soulstrike:</h3>'];
 	const sourceItem = workflow.actor.items.getName('Soulstrike');
 
 	if (sourceItem) {
+		chatMessage = []
 		let totalIncrement = 0;
 
 		const itemBlacklist = new Set(['Blessed Healer', 'Flames of Madness']);
@@ -46,15 +47,18 @@ async function calculateSoulstrike(workflow) {
 			`<b>${workflow.actor.name}</b>: ${sourceItem.system.uses.value}/${sourceItem.system.uses.max} | (<span style="color:green">+${totalIncrement}</span>)<hr>`,
 		);
 	}
-	const updatePromises = workflow.damageList.map(async (target) => {
-		const targetActor = await fromUuid(target.actorUuid);
+	return
+}
+
+async function calculateSoulstrikeDamageTaken(targetActor, damageValue, MidiObject, chatMessage){
+	
 		const targetItem = targetActor.items.getName('Soulstrike');
-		if (!targetItem || target.hpDamage <= 0) return;
+		if (!targetItem || damageValue <= 0) return;
 
 		let targetUsesValue = targetItem.system.uses.spent;
 
 		targetUsesValue = Math.min(targetUsesValue, targetItem.system.uses.max);
-		targetUsesValue -= target.hpDamage * 1;
+		targetUsesValue -= damageValue * 1;
 
 		await genericUtils.update(targetItem, {
 			'system.uses.spent': targetUsesValue,
@@ -65,15 +69,9 @@ async function calculateSoulstrike(workflow) {
 				target.hpDamage * 1
 			}</span>)`,
 		);
-	});
 
-	await Promise.all(updatePromises);
 
-	if (chatMessages.length > 1) {
-		const chatMessage = chatMessages.join('<br>');
-		await dev.log(chatMessage);
-	}
 	return;
 }
 
-export let soulstrike = { calculateSoulstrike };
+export let soulstrike = { calculateSoulstrike, calculateSoulstrikeDamageTaken };
