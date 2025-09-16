@@ -74,8 +74,6 @@ Hooks.on('renderChatMessage', (message, [html]) => {
 });
 
 Hooks.on('midi-qol.RollComplete', async (workflow) => {
-	await new Promise((resolve) => setTimeout(resolve, 1000));
-
 	const damageList = workflow.damageList;
 	if (damageList.length <= 0) return;
 
