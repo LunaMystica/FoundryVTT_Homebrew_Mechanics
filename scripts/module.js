@@ -73,7 +73,7 @@ Hooks.on('renderChatMessage', (message, [html]) => {
 		html.style.display = 'none';
 });
 
-Hooks.on('midi-qol.RollComplete', async (workflow) => {
+Hooks.on('midi-qol.postActiveEffects', async (workflow) => {
 	const damageList = workflow.damageList;
 	if (damageList.length <= 0) return;
 
@@ -84,11 +84,6 @@ Hooks.on('midi-qol.RollComplete', async (workflow) => {
 	if (game.settings.get('xeno-homebrew-mechanics', 'soulstrike-toggle')) {
 		await soulstrike.calculateSoulstrike(workflow, chatMessage);
 	}
-});
-
-Hooks.once('dnd5e.applyDamage', (damageObject, damageValue, MidiObject) => {
-	console.log(damageValue)
-	// await soulstrike.calculateSoulstrikeDamageTaken(damageObject.actor, damageValue, MidiObject, chatMessage)
 });
 
 Hooks.on('deleteCombat', async (combat) => {
