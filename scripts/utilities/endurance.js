@@ -60,7 +60,9 @@ async function updateEndurance(target, workflow, brokenTargets = []) {
 		if (simulatedEndurance >= enduranceItem.system.uses.max) {
 			simulatedEndurance = enduranceItem.system.uses.max;
 			enduranceBroken = true;
-			brokenTargets.push({ tokenTarget, damageType: damage.options.type });
+
+			const targetToken = canvas.tokens.get(tokenTarget.id);
+			brokenTargets.push({ target: targetToken, damageType: damage.options.type });
 			await effectUtils.createEffect(targetActor, endurance_broken_effect);
 		}
 
@@ -70,7 +72,7 @@ async function updateEndurance(target, workflow, brokenTargets = []) {
 
 		chatMessages.push(
 			`<b>${tokenTarget.name}</b>: ${enduranceItem.system.uses.value}/${enduranceItem.system.uses.max} | (<span style="color:red">-${enduranceReduction}</span>) | ${damage.options.type}` +
-				(enduranceBroken ? ' (broken)' : '')
+				(enduranceBroken ? ' (broken)' : ''),
 		);
 		break;
 	}
@@ -139,10 +141,8 @@ async function processBrokenTargets(brokenTargets, workflow, damageTypeFeatures)
 	for (const [damageType, targets] of Object.entries(groupedBrokenTargets)) {
 		const sourceItem = await fromUuid(damageTypeFeatures[damageType]);
 		const totalDamage = workflow.damageRolls.filter((damage) => damage.options.type === damageType).reduce((acc, damage) => acc + damage.total, 0);
-
-		let activity = sourceItem.system.activities.values().next().value;
-
-		let activityData = await activityUtils.withChangedDamage(activity, `${totalDamage}`);
+		const activity = sourceItem.system.activities.values().next().value;
+		const activityData = await activityUtils.withChangedDamage(activity, `${totalDamage}`);
 
 		await workflowUtils.syntheticActivityDataRoll(activityData, sourceItem, workflow.actor, targets);
 	}
