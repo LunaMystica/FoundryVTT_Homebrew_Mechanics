@@ -77,18 +77,39 @@ Hooks.on('midi-qol.postActiveEffects', async (workflow) => {
 	const damageList = workflow.damageList;
 	if (damageList.length <= 0) return;
 
+	// Start debug group for this workflow
+	dev.debugGroupStart('Workflow Processing');
+	dev.debugWorkflow(workflow);
+	dev.debugDamageList(damageList);
+
 	if (game.settings.get('xeno-homebrew-mechanics', 'endurance-toggle')) {
+		dev.debugLog('process', 'Starting Endurance Processing');
 		await endurance.checkEndurance(damageList, workflow);
+	} else {
+		dev.debugLog('warning', 'Endurance processing disabled');
 	}
 
 	if (game.settings.get('xeno-homebrew-mechanics', 'soulstrike-toggle')) {
+		dev.debugLog('process', 'Starting Soulstrike Processing');
 		await soulstrike.calculateSoulstrike(workflow, chatMessage);
+	} else {
+		dev.debugLog('warning', 'Soulstrike processing disabled');
 	}
+
+	// End debug group
+	dev.debugGroupEnd();
 });
 
 Hooks.on('deleteCombat', async (combat) => {
 	if (!game.user.isGM) return;
+	
+	dev.debugGroupStart('Combat Ended - Endurance Reset');
+	dev.debugLog('info', `Resetting endurance for ${combat.combatants.size} combatants`);
+	
 	for (let combatant of combat.combatants) {
+		dev.debugLog('process', `Resetting endurance for ${combatant.actor.name}`);
 		endurance.resetEndurance(combatant.actor);
 	}
+	
+	dev.debugGroupEnd();
 });
