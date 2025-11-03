@@ -1,6 +1,6 @@
-import { endurance, soulstrike, dev } from './lib/utils.js';
+import { endurance, soulstrike, dev, chatLog } from './lib/utils.js';
 
-let chatMessage = []
+let chatMessage = [];
 
 Hooks.once('init', async function () {
 	game.settings.register('xeno-homebrew-mechanics', 'endurance-toggle', {
@@ -65,6 +65,7 @@ Hooks.on('ready', async () => {
 		endurance,
 		soulstrike,
 		dev,
+		chatLog,
 	};
 });
 
@@ -102,14 +103,14 @@ Hooks.on('midi-qol.postActiveEffects', async (workflow) => {
 
 Hooks.on('deleteCombat', async (combat) => {
 	if (!game.user.isGM) return;
-	
+
 	dev.debugGroupStart('Combat Ended - Endurance Reset');
 	dev.debugLog('info', `Resetting endurance for ${combat.combatants.size} combatants`);
-	
+
 	for (let combatant of combat.combatants) {
 		dev.debugLog('process', `Resetting endurance for ${combatant.actor.name}`);
 		endurance.resetEndurance(combatant.actor);
 	}
-	
+
 	dev.debugGroupEnd();
 });
