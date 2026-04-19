@@ -160,7 +160,7 @@ class Endurance {
 		// ── Break endurance and fire damage roll in parallel ───────────────────
 		await Promise.all([
 			this._applyBreak(actor, enduranceItem, damageType, null),
-			this._fireSyntheticRoll(damageType, damageAmount, sourceActor, [targetToken]),
+			this._fireSyntheticRoll(damageType, damageAmount, sourceActor, [targetToken], { ignoreTraits: ['idr', 'idv', 'idi', 'idm', 'ida'] }),
 		]);
 
 		const message = `<h3>Endurance:</h3><br><b>${actor.name}</b>: 0/${enduranceItem.system.uses.max} | (<span style="color:red">FORCE BROKEN</span>) | ${damageType}`;
@@ -278,7 +278,7 @@ class Endurance {
 	 * @param {Actor} sourceActor
 	 * @param {Token[]} targetTokens
 	 */
-	async _fireSyntheticRoll(damageType, damageAmount, sourceActor, targetTokens) {
+	async _fireSyntheticRoll(damageType, damageAmount, sourceActor, targetTokens, options = {}) {
 		dev.debugGroupStart(`Synthetic Roll — ${damageType}`);
 
 		const sourceItemUuid = damageTypeFeatures[damageType];
@@ -310,6 +310,10 @@ class Endurance {
 		}
 
 		activityData.target.affects.count = 999;
+		if (options.ignoreTraits) {
+			activityData.midiProperties ??= {};
+			activityData.midiProperties.ignoreTraits = options.ignoreTraits;
+		}
 		await workflowUtils.syntheticActivityDataRoll(activityData, sourceItem, sourceActor, targetTokens);
 		dev.debugLog('success', `Synthetic roll fired`);
 
