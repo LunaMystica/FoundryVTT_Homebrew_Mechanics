@@ -1,190 +1,238 @@
 // prettier-ignore
-const {utils: {genericUtils}} = chrisPremades;
+const { utils: { genericUtils } } = chrisPremades;
+
 import { dev } from './dev.js';
 import { chatLog } from './chatLog.js';
 
-/**
- * Iterate over the hit targets and for each, calculate the
- * appropriate number of Soulstrike uses to grant to the
- * actor, and update the actor's Soulstrike item. If the
- * actor does not have a Soulstrike item, do not update
- * anything.
- *
- * @param {Workflow} workflow
- *   The workflow that hit the combatants.
- */
-async function calculateSoulstrike(workflow, chatMessage) {
-	const sourceItem = workflow.actor.items.getName('Soulstrike');
+class Soulstrike {
+	// ── Helpers ────────────────────────────────────────────────────────────────
 
-	dev.debugGroupStart('Soulstrike Processing');
-	dev.debugLog('info', `Processing soulstrike for actor: ${workflow.actor.name}`);
-
-	if (!sourceItem) {
-		dev.debugLog('warning', 'Actor has no Soulstrike item - skipping');
-		dev.debugGroupEnd();
-		return;
+	/**
+	 * Returns the display string for a Soulstrike item's current uses.
+	 * @param {Item} item
+	 * @returns {string} e.g. "3/10"
+	 */
+	static usesDisplay(item) {
+		return `${item.system.uses.value}/${item.system.uses.max}`;
 	}
 
-	dev.debugLog('info', `Current soulstrike: ${sourceItem.system.uses.value}/${sourceItem.system.uses.max}`);
-
-	chatMessage = [];
-	let totalIncrement = 0;
-
-	const itemBlacklist = new Set(['Blessed Healer', 'Flames of Madness']);
-	const sectionsBlacklist = new Set(['Soulstrike Burst', 'Weakness Break']);
-
-	dev.debugLog('info', `Item blacklist: [${Array.from(itemBlacklist).join(', ')}]`);
-	dev.debugLog('info', `Section blacklist: [${Array.from(sectionsBlacklist).join(', ')}]`);
-
-	let { name: itemName, flags } = workflow.item;
-	let itemSection = flags['tidy5e-sheet']?.section;
-
-	itemName = itemName.trimEnd();
-	itemSection = itemSection?.trimEnd();
-
-	dev.debugLog('process', `Checking item: "${itemName}" (Section: "${itemSection}")`);
-
-	if (workflow.hitTargets.size <= 0) {
-		dev.debugLog('warning', 'No hit targets - no soulstrike gain');
-		dev.debugGroupEnd();
-		return;
+	/**
+	 * Computes the new `spent` value after granting `increment` charges,
+	 * clamped so spent never goes below 0.
+	 * @param {Item} item
+	 * @param {number} increment
+	 * @returns {{ initialSpent: number, newSpent: number, actualGain: number }}
+	 */
+	static computeSpentAfterGain(item, increment) {
+		const initialSpent = item.system.uses.spent;
+		const newSpent = Math.max(initialSpent - increment, 0);
+		const actualGain = initialSpent - newSpent;
+		return { initialSpent, newSpent, actualGain };
 	}
 
-	dev.debugLog('info', `Hit targets: ${workflow.hitTargets.size}`);
-
-	// Check blacklists - note the logic uses OR, not AND
-	const itemBlacklisted = itemBlacklist.has(itemName);
-	const sectionBlacklisted = sectionsBlacklist.has(itemSection);
-
-	dev.debugLog('process', `Item blacklisted: ${itemBlacklisted}`);
-	dev.debugLog('process', `Section blacklisted: ${sectionBlacklisted}`);
-
-	if (!itemBlacklisted && !sectionBlacklisted) {
-		totalIncrement = workflow.hitTargets.size * 5;
-		dev.debugLog('math', `Calculating increment: ${workflow.hitTargets.size} targets × 5 = ${totalIncrement}`);
-	} else {
-		dev.debugLog('warning', 'Item or section is blacklisted - no soulstrike gain');
-	}
-
-	if (totalIncrement <= 0 || isNaN(totalIncrement)) {
-		dev.debugLog('warning', 'No valid increment calculated');
-		dev.debugGroupEnd();
-		return;
-	}
-
-	const newUsesValue = Math.max(sourceItem.system.uses.spent - totalIncrement, 0);
-	const initialUsesValue = sourceItem.system.uses.spent;
-
-	dev.debugLog(
-		'math',
-		`Updating soulstrike: ${sourceItem.system.uses.value} + ${totalIncrement} = ${sourceItem.system.uses.value + totalIncrement} = ${
-			sourceItem.system.uses.value + totalIncrement
-		} (spent) = ${newUsesValue} (max ${sourceItem.system.uses.max})`
-	);
-
-	await genericUtils.update(sourceItem, {
-		'system.uses.spent': newUsesValue,
-	});
-
-	dev.debugLog('success', `Soulstrike updated successfully`);
-	if (newUsesValue !== initialUsesValue) {
-		chatMessage.push(
-			`<b>${workflow.actor.name}</b>: ${sourceItem.system.uses.value}/${sourceItem.system.uses.max} | (<span style="color:green">+${totalIncrement}</span>)<hr>`
+	/**
+	 * Parses a comma-separated blacklist setting string into a trimmed Set.
+	 * @param {string} settingKey
+	 * @returns {Set<string>}
+	 */
+	static getBlacklistSetting(settingKey) {
+		const raw = game.settings.get('xeno-homebrew-mechanics', settingKey) ?? '';
+		return new Set(
+			raw
+				.split(',')
+				.map((s) => s.trim())
+				.filter(Boolean),
 		);
 	}
 
-	// Process soulstrike damage taken for each target in damageList
-	if (workflow.damageList && workflow.damageList.length > 0) {
-		dev.debugLog('process', `Processing soulstrike damage taken for ${workflow.damageList.length} targets`);
+	// ── Entry Point ────────────────────────────────────────────────────────────
 
-		for (const target of workflow.damageList) {
-			if (target.hpDamage > 0 && target.isHit) {
-				const targetActor = await fromUuid(target.actorUuid);
-				if (targetActor) {
-					dev.debugLog('target', `Processing damage taken by ${targetActor.name}: ${target.hpDamage} HP damage`);
-					await calculateSoulstrikeDamageTaken(targetActor, target.hpDamage, chatMessage);
-				} else {
-					dev.debugLog('warning', `Could not resolve actor for target UUID: ${target.actorUuid}`);
-				}
-			} else {
-				dev.debugLog('info', `Skipping target with no HP damage: ${target.actorUuid}`);
-			}
+	/**
+	 * Main entry point. Validates the workflow, resolves blacklists, then
+	 * independently processes attacker gain and per-target damage-taken gain.
+	 *
+	 * @param {Workflow} workflow
+	 */
+	async calculateSoulstrike(workflow) {
+		dev.debugGroupStart('Soulstrike');
+		dev.debugLog('info', `Triggered by ${workflow.actor.name} using "${workflow.item.name}"`);
+
+		if (workflow.hitTargets.size === 0) {
+			dev.debugLog('warning', 'No targets hit — aborting');
+			dev.debugGroupEnd();
+			return;
 		}
-	} else {
-		dev.debugLog('info', 'No damage list available for soulstrike damage taken processing');
+
+		const itemBlacklist = Soulstrike.getBlacklistSetting('soulstrike-item-blacklist');
+		const sectionBlacklist = Soulstrike.getBlacklistSetting('soulstrike-section-blacklist');
+
+		const itemName = workflow.item.name.trimEnd();
+		const itemSection = workflow.item.flags?.['tidy5e-sheet']?.section?.trimEnd() ?? null;
+
+		const itemBlacklisted = itemBlacklist.has(itemName);
+		const sectionBlacklisted = sectionBlacklist.has(itemSection);
+
+		dev.debugLog('info', `Item: "${itemName}" | Section: "${itemSection ?? 'none'}"`);
+		dev.debugLog('info', `Blacklisted — item: ${itemBlacklisted} | section: ${sectionBlacklisted}`);
+		dev.debugLog('info', `Targets hit: ${workflow.hitTargets.size}`);
+
+		// Run both independently — neither blocks the other
+		await this._processAttackerGain(workflow, itemBlacklisted, sectionBlacklisted);
+		await this._processTargetGain(workflow, sectionBlacklisted);
+
+		dev.debugGroupEnd();
 	}
 
-	// Send chat messages if any were collected
-	if (chatMessage.length > 0) {
-		const messageContent = '<h3>Soulstrike:</h3><br>' + chatMessage.join('<br>');
-		await chatLog(messageContent);
+	// ── Attacker Gain ──────────────────────────────────────────────────────────
+
+	/**
+	 * Grants Soulstrike charges to the attacker: 5 per target hit.
+	 * Skipped if the attacker has no Soulstrike item, or if blacklisted.
+	 *
+	 * @param {Workflow} workflow
+	 * @param {boolean} itemBlacklisted
+	 * @param {boolean} sectionBlacklisted
+	 */
+	async _processAttackerGain(workflow, itemBlacklisted, sectionBlacklisted) {
+		dev.debugGroupStart('Attacker Gain');
+
+		const actor = workflow.actor;
+		const sourceItem = actor.items.getName('Soulstrike');
+
+		if (!sourceItem) {
+			dev.debugLog('warning', `${actor.name} has no Soulstrike item — skipping`);
+			dev.debugGroupEnd();
+			return;
+		}
+
+		if (itemBlacklisted || sectionBlacklisted) {
+			dev.debugLog('warning', `Blacklisted (item: ${itemBlacklisted}, section: ${sectionBlacklisted}) — no gain`);
+			dev.debugGroupEnd();
+			return;
+		}
+
+		const increment = workflow.hitTargets.size * 5;
+		dev.debugLog('math', `Increment: ${workflow.hitTargets.size} hit × 5 = ${increment}`);
+
+		const { initialSpent, newSpent, actualGain } = Soulstrike.computeSpentAfterGain(sourceItem, increment);
+
+		if (actualGain === 0) {
+			dev.debugLog('info', `${actor.name} is already at full Soulstrike — no update needed`);
+			dev.debugGroupEnd();
+			return;
+		}
+
+		dev.debugLog('math', `Spent: ${initialSpent} → ${newSpent} (+${actualGain} charges) | ${Soulstrike.usesDisplay(sourceItem)}`);
+
+		await genericUtils.update(sourceItem, { 'system.uses.spent': newSpent });
+		dev.debugLog('success', `${actor.name} gained ${actualGain} Soulstrike charge${actualGain !== 1 ? 's' : ''}`);
+
+		const message = `<b>${actor.name}</b>: ${Soulstrike.usesDisplay(sourceItem)} | (<span style="color:green">+${actualGain}</span>)<hr>`;
+		await chatLog.send(`<h3>Soulstrike:</h3><br>${message}`);
+
+		dev.debugGroupEnd();
 	}
 
-	dev.debugGroupEnd();
-	return;
+	// ── Target Gain ────────────────────────────────────────────────────────────
+
+	/**
+	 * Grants Soulstrike charges to each target that took HP damage.
+	 * Resolves all actors in parallel, then processes sequentially.
+	 * Targets without a Soulstrike item are silently skipped.
+	 *
+	 * @param {Workflow} workflow
+	 */
+	async _processTargetGain(workflow, sectionBlacklisted) {
+		dev.debugGroupStart('Target Gain');
+
+		if (!workflow.damageList?.length) {
+			dev.debugLog('info', 'No damage list on workflow — skipping');
+			dev.debugGroupEnd();
+			return;
+		}
+
+		if (sectionBlacklisted) {
+			dev.debugLog('warning', `Blacklisted (section) — no gain`);
+			dev.debugGroupEnd();
+			return;
+		}
+
+		dev.debugLog('info', `Damage list has ${workflow.damageList.length} entr${workflow.damageList.length === 1 ? 'y' : 'ies'}`);
+
+		// ── Resolve all actors in parallel ────────────────────────────────────
+		const validTargets = (
+			await Promise.all(
+				workflow.damageList.map(async (target) => {
+					if (!target.isHit || target.hpDamage <= 0) {
+						dev.debugLog('info', `Skipping ${target.actorUuid} — not hit or no HP damage`);
+						return null;
+					}
+
+					const actor = await fromUuid(target.actorUuid);
+					if (!actor) {
+						dev.debugLog('warning', `Could not resolve actor for UUID: ${target.actorUuid}`);
+						return null;
+					}
+
+					return { actor, hpDamage: target.hpDamage };
+				}),
+			)
+		).filter(Boolean);
+
+		dev.debugLog('info', `${validTargets.length} valid target${validTargets.length !== 1 ? 's' : ''} to process`);
+
+		// ── Process sequentially (updates must be ordered) ────────────────────
+		const chatMessages = [];
+		for (const { actor, hpDamage } of validTargets) {
+			await this._applyDamageTakenGain(actor, hpDamage, chatMessages);
+		}
+
+		if (chatMessages.length > 0) {
+			await chatLog.send('<h3>Soulstrike (Damage Taken):</h3><br>' + chatMessages.join('<br>'));
+		}
+
+		dev.debugGroupEnd();
+	}
+
+	// ── Damage-Taken Gain ──────────────────────────────────────────────────────
+
+	/**
+	 * Grants a target Soulstrike charges equal to the HP damage they took.
+	 *
+	 * @param {Actor} targetActor
+	 * @param {number} damageValue
+	 * @param {string[]} chatMessages - Mutated in place; caller sends the batch.
+	 */
+	async _applyDamageTakenGain(targetActor, damageValue, chatMessages) {
+		dev.debugGroupStart(`Damage Taken — ${targetActor.name}`);
+
+		const targetItem = targetActor.items.getName('Soulstrike');
+
+		if (!targetItem) {
+			dev.debugLog('warning', `${targetActor.name} has no Soulstrike item — skipping`);
+			dev.debugGroupEnd();
+			return;
+		}
+
+		dev.debugLog('info', `Current: ${Soulstrike.usesDisplay(targetItem)} | Incoming damage: ${damageValue}`);
+
+		const { initialSpent, newSpent, actualGain } = Soulstrike.computeSpentAfterGain(targetItem, damageValue);
+
+		if (actualGain === 0) {
+			dev.debugLog('info', `${targetActor.name} is already at full Soulstrike — no update needed`);
+			dev.debugGroupEnd();
+			return;
+		}
+
+		dev.debugLog('math', `Spent: ${initialSpent} → ${newSpent} (+${actualGain} charges) | ${Soulstrike.usesDisplay(targetItem)}`);
+
+		await genericUtils.update(targetItem, { 'system.uses.spent': newSpent });
+		dev.debugLog('success', `${targetActor.name} gained ${actualGain} Soulstrike charge${actualGain !== 1 ? 's' : ''} from damage taken`);
+
+		chatMessages.push(`<b>${targetActor.name}</b>: ${Soulstrike.usesDisplay(targetItem)} | (+<span style="color:green">${actualGain}</span>)`);
+
+		dev.debugGroupEnd();
+	}
 }
 
-/**
- * Processes soulstrike adjustment when a target actor takes damage.
- * Reduces the target's soulstrike uses based on the damage taken,
- * effectively granting them soulstrike charges when they are hurt.
- *
- * @async
- * @function calculateSoulstrikeDamageTaken
- * @param {Actor} targetActor - The actor that took damage and whose soulstrike will be adjusted
- * @param {number} damageValue - The amount of HP damage taken by the target
- * @param {Array<string>} [chatMessage] - Optional array to collect chat message strings for display
- *
- * @description
- * This function implements the soulstrike mechanic where actors gain soulstrike charges
- * when they take damage.
- **/
-async function calculateSoulstrikeDamageTaken(targetActor, damageValue, chatMessage) {
-	dev.debugGroupStart('Soulstrike Damage Taken');
-	dev.debugLog('info', `Processing damage taken for: ${targetActor.name}`);
-	dev.debugLog('info', `Damage value: ${damageValue}`);
-
-	const targetItem = targetActor.items.getName('Soulstrike');
-	if (!targetItem) {
-		dev.debugLog('warning', 'Target has no Soulstrike item - skipping');
-		dev.debugGroupEnd();
-		return;
-	}
-	if (damageValue <= 0) {
-		dev.debugLog('warning', 'No damage taken - skipping soulstrike adjustment');
-		dev.debugGroupEnd();
-		return;
-	}
-
-	dev.debugLog('info', `Current soulstrike: ${targetItem.system.uses.value}/${targetItem.system.uses.max}`);
-
-	let targetUsesValue = targetItem.system.uses.spent;
-	let initialUsesValue = targetUsesValue;
-	dev.debugLog('process', `Initial soulstrike: ${targetItem.system.uses.max - targetUsesValue}`);
-
-	targetUsesValue = Math.min(targetUsesValue, targetItem.system.uses.max);
-	dev.debugLog('math', `After min cap: $target.system.uses.max - ${targetUsesValue}`);
-
-	targetUsesValue -= damageValue * 1;
-	dev.debugLog('math', `After damage reduction: ${(targetUsesValue, targetItem.system.uses.max - targetUsesValue)}`);
-	dev.debugLog('math', `After max cap: ${Math.min((targetUsesValue, targetItem.system.uses.max - targetUsesValue), targetItem.system.uses.max)}`);
-
-	await genericUtils.update(targetItem, {
-		'system.uses.spent': targetUsesValue,
-	});
-
-	dev.debugLog('success', 'Soulstrike damage adjustment completed');
-
-	// Add message to chat if chatMessage array is provided
-	if (chatMessage) {
-		if (initialUsesValue != 0)
-			chatMessage.push(
-				`<b>${targetActor.name}</b>: ${targetItem.system.uses.value}/${targetItem.system.uses.max} | (+<span style="color:green">${damageValue}</span>)`
-			);
-	}
-
-	dev.debugGroupEnd();
-	return;
-}
-
-export let soulstrike = { calculateSoulstrike, calculateSoulstrikeDamageTaken };
+export const soulstrike = new Soulstrike();
