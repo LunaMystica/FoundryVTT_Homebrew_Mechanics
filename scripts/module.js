@@ -94,6 +94,24 @@ Hooks.on('renderChatMessage', (message, [html]) => {
 // ── MidiQOL Workflow ───────────────────────────────────────────────────────────
 
 Hooks.on('midi-qol.postActiveEffects', async (workflow) => {
+	// Stamp lastHit on all targets for damage-less activities (e.g. Magic Missile launcher)
+	// so downstream bolt workflows from the same item/activity/turn are de-duplicated.
+	if (!workflow.damageList?.length && workflow.targets?.size) {
+		const combatRound = game.combat?.round ?? null;
+		const combatTurn = game.combat?.turn ?? null;
+		await Promise.all(
+			[...workflow.targets].map((token) => {
+				const tokenDoc = token.document ?? token;
+				return tokenDoc.setFlag('xeno-homebrew-mechanics', 'lastHit', {
+					itemUuid: workflow.item.uuid,
+					activityUuid: workflow.activity.uuid,
+					round: combatRound,
+					turn: combatTurn,
+				});
+			}),
+		);
+	}
+
 	if (!workflow.damageList?.length) return;
 
 	dev.debugGroupStart('Workflow');

@@ -3,6 +3,7 @@ const { utils: { activityUtils, effectUtils, genericUtils, workflowUtils } } = c
 import { damageTypeFeatures, endurance_broken_effect } from '../../constants/index.js';
 import { dev } from './dev.js';
 import { chatLog } from './chatLog.js';
+import { isSoulstrike } from './soulstrike.js';
 
 class Endurance {
 	#chatMessages = [];
@@ -76,10 +77,49 @@ class Endurance {
 		dev.debugGroupStart('Endurance');
 		dev.debugLog('info', `Triggered by "${workflow.item.name}" — ${damageList.length} damage target${damageList.length !== 1 ? 's' : ''}`);
 
+		// ── Set lastHit flag on hit targets for spells and Soulstrike feats ─────
+		const combatRound = game.combat?.round ?? null;
+		const combatTurn = game.combat?.turn ?? null;
+		const alreadyProcessed = new Set();
+
+		const shouldTrackHit = workflow.item.type === 'spell' || isSoulstrike(workflow.item);
+
+		if (shouldTrackHit)
+			await Promise.all(
+				[...workflow.hitTargets].map(async (token) => {
+					const tokenDoc = token.document ?? token;
+
+					console.log('Processing token for lastHit flag:', tokenDoc.name);
+					console.log('Target', tokenDoc);
+					const lastHit = tokenDoc.getFlag('xeno-homebrew-mechanics', 'lastHit');
+					if (
+						lastHit?.itemUuid === workflow.item.uuid &&
+						lastHit?.activityUuid === workflow.activity.uuid &&
+						lastHit?.round === combatRound &&
+						lastHit?.turn === combatTurn
+					) {
+						alreadyProcessed.add(tokenDoc.uuid);
+					}
+					await tokenDoc.setFlag('xeno-homebrew-mechanics', 'lastHit', {
+						itemUuid: workflow.item.uuid,
+						activityUuid: workflow.activity.uuid,
+						round: combatRound,
+						turn: combatTurn,
+					});
+				}),
+			);
+
+		dev.debugLog('info', `Track hit source: ${shouldTrackHit} | Already-processed: ${alreadyProcessed.size}`);
+
 		// ── Filter valid targets up front, resolving actors in parallel ────────
 		const validTargets = (
 			await Promise.all(
 				damageList.map(async (target) => {
+					if (alreadyProcessed.has(target.targetUuid)) {
+						dev.debugLog('info', `Skipping ${target.actorUuid} — already processed by this item/activity this turn`);
+						return null;
+					}
+
 					if (!target.isHit || workflow.activity.damage.onSave === 'none') {
 						dev.debugLog('info', `Skipping ${target.actorUuid} — not hit or damage on save is none`);
 						return null;

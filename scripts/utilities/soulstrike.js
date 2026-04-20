@@ -236,3 +236,8 @@ class Soulstrike {
 }
 
 export const soulstrike = new Soulstrike();
+
+export function isSoulstrike(item) {
+	const section = item.flags?.['tidy5e-sheet']?.section ?? null;
+	return item.type === 'feat' && (section === 'Soulstrike Move' || section === 'Soulstrike Burst');
+}
