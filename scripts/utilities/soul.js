@@ -4,11 +4,11 @@ const { utils: { genericUtils } } = chrisPremades;
 import { dev } from './dev.js';
 import { chatLog } from './chatLog.js';
 
-class Soulstrike {
+class Soul {
 	// ── Helpers ────────────────────────────────────────────────────────────────
 
 	/**
-	 * Returns the display string for a Soulstrike item's current uses.
+	 * Returns the display string for a Soul item's current uses.
 	 * @param {Item} item
 	 * @returns {string} e.g. "3/10"
 	 */
@@ -53,8 +53,8 @@ class Soulstrike {
 	 *
 	 * @param {Workflow} workflow
 	 */
-	async calculateSoulstrike(workflow) {
-		dev.debugGroupStart('Soulstrike');
+	async calculateSoul(workflow) {
+		dev.debugGroupStart('Soul');
 		dev.debugLog('info', `Triggered by ${workflow.actor.name} using "${workflow.item.name}"`);
 
 		if (workflow.hitTargets.size === 0) {
@@ -63,8 +63,8 @@ class Soulstrike {
 			return;
 		}
 
-		const itemBlacklist = Soulstrike.getBlacklistSetting('soulstrike-item-blacklist');
-		const sectionBlacklist = Soulstrike.getBlacklistSetting('soulstrike-section-blacklist');
+		const itemBlacklist = Soul.getBlacklistSetting('soul-item-blacklist');
+		const sectionBlacklist = Soul.getBlacklistSetting('soul-section-blacklist');
 
 		const itemName = workflow.item.name.trimEnd();
 		const itemSection = workflow.item.flags?.['tidy5e-sheet']?.section?.trimEnd() ?? null;
@@ -72,9 +72,10 @@ class Soulstrike {
 		const itemBlacklisted = itemBlacklist.has(itemName);
 		const sectionBlacklisted = sectionBlacklist.has(itemSection);
 
-		dev.debugLog('info', `Item: "${itemName}" | Section: "${itemSection ?? 'none'}"`);
-		dev.debugLog('info', `Blacklisted — item: ${itemBlacklisted} | section: ${sectionBlacklisted}`);
-		dev.debugLog('info', `Targets hit: ${workflow.hitTargets.size}`);
+		dev.debugLog(
+			'info',
+			`"${itemName}" (${itemSection ?? 'no section'}) — ${workflow.hitTargets.size} hit | blacklist: item=${itemBlacklisted} section=${sectionBlacklisted}`,
+		);
 
 		// Run both independently — neither blocks the other
 		await this._processAttackerGain(workflow, itemBlacklisted, sectionBlacklisted);
@@ -86,8 +87,8 @@ class Soulstrike {
 	// ── Attacker Gain ──────────────────────────────────────────────────────────
 
 	/**
-	 * Grants Soulstrike charges to the attacker: 5 per target hit.
-	 * Skipped if the attacker has no Soulstrike item, or if blacklisted.
+	 * Grants Soul charges to the attacker: flat 4 for attacks, 3 per target for AoE.
+	 * Skipped if the attacker has no Soul item, or if blacklisted.
 	 *
 	 * @param {Workflow} workflow
 	 * @param {boolean} itemBlacklisted
@@ -97,38 +98,39 @@ class Soulstrike {
 		dev.debugGroupStart('Attacker Gain');
 
 		const actor = workflow.actor;
-		const sourceItem = actor.items.getName('Soulstrike');
+		const sourceItem = actor.items.getName('Soul');
 
 		if (!sourceItem) {
-			dev.debugLog('warning', `${actor.name} has no Soulstrike item — skipping`);
+			dev.debugLog('warning', `${actor.name} has no Soul item — skipping`);
 			dev.debugGroupEnd();
 			return;
 		}
 
 		if (itemBlacklisted || sectionBlacklisted) {
-			dev.debugLog('warning', `Blacklisted (item: ${itemBlacklisted}, section: ${sectionBlacklisted}) — no gain`);
+			dev.debugLog('warning', 'Blacklisted — skipping attacker gain');
 			dev.debugGroupEnd();
 			return;
 		}
 
-		const increment = workflow.hitTargets.size * 5;
-		dev.debugLog('math', `Increment: ${workflow.hitTargets.size} hit × 5 = ${increment}`);
+		const isAoe = !!workflow.templateUuid;
+		const increment = isAoe ? workflow.hitTargets.size * 3 : 4;
+		dev.debugLog('math', isAoe ? `AoE: ${workflow.hitTargets.size} hit × 3 = +${increment} charges` : `Attack: flat +${increment} charges`);
 
-		const { initialSpent, newSpent, actualGain } = Soulstrike.computeSpentAfterGain(sourceItem, increment);
+		const { initialSpent, newSpent, actualGain } = Soul.computeSpentAfterGain(sourceItem, increment);
 
 		if (actualGain === 0) {
-			dev.debugLog('info', `${actor.name} is already at full Soulstrike — no update needed`);
+			dev.debugLog('info', `${actor.name}: already at full Soul`);
 			dev.debugGroupEnd();
 			return;
 		}
 
-		dev.debugLog('math', `Spent: ${initialSpent} → ${newSpent} (+${actualGain} charges) | ${Soulstrike.usesDisplay(sourceItem)}`);
-
+		const displayBefore = Soul.usesDisplay(sourceItem);
+		const displayAfter = `${sourceItem.system.uses.max - newSpent}/${sourceItem.system.uses.max}`;
 		await genericUtils.update(sourceItem, { 'system.uses.spent': newSpent });
-		dev.debugLog('success', `${actor.name} gained ${actualGain} Soulstrike charge${actualGain !== 1 ? 's' : ''}`);
+		dev.debugLog('success', `${actor.name}: +${actualGain} | ${displayBefore} → ${displayAfter}`);
 
-		const message = `<b>${actor.name}</b>: ${Soulstrike.usesDisplay(sourceItem)} | (<span style="color:green">+${actualGain}</span>)<hr>`;
-		await chatLog.send(`<h3>Soulstrike:</h3><br>${message}`);
+		const message = `<b>${actor.name}</b>: ${Soul.usesDisplay(sourceItem)} | (<span style="color:green">+${actualGain}</span>)<hr>`;
+		await chatLog.send(`<h3>Soul:</h3><br>${message}`);
 
 		dev.debugGroupEnd();
 	}
@@ -136,9 +138,9 @@ class Soulstrike {
 	// ── Target Gain ────────────────────────────────────────────────────────────
 
 	/**
-	 * Grants Soulstrike charges to each target that took HP damage.
+	 * Grants Soul charges to each target that took HP damage.
 	 * Resolves all actors in parallel, then processes sequentially.
-	 * Targets without a Soulstrike item are silently skipped.
+	 * Targets without a Soul item are silently skipped.
 	 *
 	 * @param {Workflow} workflow
 	 */
@@ -152,25 +154,26 @@ class Soulstrike {
 		}
 
 		if (sectionBlacklisted) {
-			dev.debugLog('warning', `Blacklisted (section) — no gain`);
+			dev.debugLog('warning', 'Section blacklisted — skipping target gain');
 			dev.debugGroupEnd();
 			return;
 		}
 
-		dev.debugLog('info', `Damage list has ${workflow.damageList.length} entr${workflow.damageList.length === 1 ? 'y' : 'ies'}`);
+		dev.debugLog('info', `Damage list: ${workflow.damageList.length} entr${workflow.damageList.length === 1 ? 'y' : 'ies'}`);
 
 		// ── Resolve all actors in parallel ────────────────────────────────────
 		const validTargets = (
 			await Promise.all(
 				workflow.damageList.map(async (target) => {
 					if (!target.isHit || target.hpDamage <= 0) {
-						dev.debugLog('info', `Skipping ${target.actorUuid} — not hit or no HP damage`);
+						const name = fromUuidSync(target.actorUuid)?.name ?? target.actorUuid;
+						dev.debugLog('info', `Skip ${name} — not hit or no HP damage`);
 						return null;
 					}
 
 					const actor = await fromUuid(target.actorUuid);
 					if (!actor) {
-						dev.debugLog('warning', `Could not resolve actor for UUID: ${target.actorUuid}`);
+						dev.debugLog('warning', `Could not resolve actor: ${target.actorUuid}`);
 						return null;
 					}
 
@@ -188,7 +191,7 @@ class Soulstrike {
 		}
 
 		if (chatMessages.length > 0) {
-			await chatLog.send('<h3>Soulstrike (Damage Taken):</h3><br>' + chatMessages.join('<br>'));
+			await chatLog.send('<h3>Soul (Damage Taken):</h3><br>' + chatMessages.join('<br>'));
 		}
 
 		dev.debugGroupEnd();
@@ -197,47 +200,52 @@ class Soulstrike {
 	// ── Damage-Taken Gain ──────────────────────────────────────────────────────
 
 	/**
-	 * Grants a target Soulstrike charges equal to the HP damage they took.
+	 * Grants a target Soul charges based on HP damage taken.
 	 *
 	 * @param {Actor} targetActor
 	 * @param {number} damageValue
 	 * @param {string[]} chatMessages - Mutated in place; caller sends the batch.
 	 */
 	async _applyDamageTakenGain(targetActor, damageValue, chatMessages) {
-		dev.debugGroupStart(`Damage Taken — ${targetActor.name}`);
+		const targetItem = targetActor.items.getName('Soul');
+		if (!targetItem) return;
 
-		const targetItem = targetActor.items.getName('Soulstrike');
-
-		if (!targetItem) {
-			dev.debugLog('warning', `${targetActor.name} has no Soulstrike item — skipping`);
-			dev.debugGroupEnd();
-			return;
-		}
-
-		dev.debugLog('info', `Current: ${Soulstrike.usesDisplay(targetItem)} | Incoming damage: ${damageValue}`);
-
-		const { initialSpent, newSpent, actualGain } = Soulstrike.computeSpentAfterGain(targetItem, damageValue);
+		const increment = Math.floor((damageValue * 3) / 2.5);
+		dev.debugLog('info', `${targetActor.name}: ${Soul.usesDisplay(targetItem)} | ${damageValue} damage → +${increment} charges`);
+		const { initialSpent, newSpent, actualGain } = Soul.computeSpentAfterGain(targetItem, increment);
 
 		if (actualGain === 0) {
-			dev.debugLog('info', `${targetActor.name} is already at full Soulstrike — no update needed`);
-			dev.debugGroupEnd();
+			dev.debugLog('info', `${targetActor.name}: already at full Soul`);
 			return;
 		}
 
-		dev.debugLog('math', `Spent: ${initialSpent} → ${newSpent} (+${actualGain} charges) | ${Soulstrike.usesDisplay(targetItem)}`);
-
+		const displayBefore = Soul.usesDisplay(targetItem);
+		const displayAfter = `${targetItem.system.uses.max - newSpent}/${targetItem.system.uses.max}`;
 		await genericUtils.update(targetItem, { 'system.uses.spent': newSpent });
-		dev.debugLog('success', `${targetActor.name} gained ${actualGain} Soulstrike charge${actualGain !== 1 ? 's' : ''} from damage taken`);
+		dev.debugLog('success', `${targetActor.name}: +${actualGain} from ${damageValue} damage | ${displayBefore} → ${displayAfter}`);
 
-		chatMessages.push(`<b>${targetActor.name}</b>: ${Soulstrike.usesDisplay(targetItem)} | (+<span style="color:green">${actualGain}</span>)`);
+		chatMessages.push(`<b>${targetActor.name}</b>: ${Soul.usesDisplay(targetItem)} | (+<span style="color:green">${actualGain}</span>)`);
+	}
 
-		dev.debugGroupEnd();
+	// ── Long Rest Reset ────────────────────────────────────────────────────────
+
+	/**
+	 * Resets an actor's Soul item to full on long rest.
+	 * @param {Actor} actor
+	 */
+	async resetSoul(actor) {
+		const item = actor.items.getName('Soul');
+		if (!item) return;
+
+		dev.debugLog('info', `${actor.name}: resetting Soul (was ${Soul.usesDisplay(item)})`);
+		await genericUtils.update(item, { 'system.uses.spent': 0 });
+		dev.debugLog('success', `${actor.name}: Soul reset to full`);
 	}
 }
 
-export const soulstrike = new Soulstrike();
+export const soul = new Soul();
 
-export function isSoulstrike(item) {
+export function isSoul(item) {
 	const section = item.flags?.['tidy5e-sheet']?.section ?? null;
-	return item.type === 'feat' && (section === 'Soulstrike Move' || section === 'Soulstrike Burst');
+	return item.type === 'feat' && (section === 'Soulstrike' || section === 'Soulburst');
 }

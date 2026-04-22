@@ -3,7 +3,7 @@ const { utils: { activityUtils, effectUtils, genericUtils, workflowUtils } } = c
 import { damageTypeFeatures, endurance_broken_effect } from '../../constants/index.js';
 import { dev } from './dev.js';
 import { chatLog } from './chatLog.js';
-import { isSoulstrike } from './soulstrike.js';
+import { isSoul } from './soul.js';
 
 class Endurance {
 	#chatMessages = [];
@@ -27,8 +27,8 @@ class Endurance {
 
 			case 'feat': {
 				const section = item.flags?.['tidy5e-sheet']?.section ?? null;
-				if (section === 'Soulstrike Move') { base = 3; break; }
-				if (section === 'Soulstrike Burst') { base = 6; break; }
+				if (section === 'Soulstrike') { base = 3; break; }
+				if (section === 'Soulburst') { base = 6; break; }
 				if (section === 'Weakness Break') { base = 0; break; }
 				base = 3;
 				break;
@@ -81,12 +81,12 @@ class Endurance {
 
 		dev.debugGroupStart(`Endurance — "${workflow.item.name}", ${damageList.length} target${damageList.length !== 1 ? 's' : ''}`);
 
-		// ── Set lastHit flag on hit targets for spells and Soulstrike feats ─────
+		// ── Set lastHit flag on hit targets for spells and Soul feats ─────────────
 		const combatRound = game.combat?.round ?? null;
 		const combatTurn = game.combat?.turn ?? null;
 		const alreadyProcessed = new Set();
 
-		const shouldTrackHit = workflow.item.type === 'spell' || isSoulstrike(workflow.item);
+		const shouldTrackHit = workflow.item.type === 'spell' || isSoul(workflow.item);
 
 		if (shouldTrackHit)
 			await Promise.all(

@@ -1,4 +1,4 @@
-import { endurance, soulstrike, dev, chatLog } from './lib/utils.js';
+import { endurance, soul, dev, chatLog } from './lib/utils.js';
 
 // ── Settings Registration ──────────────────────────────────────────────────────
 
@@ -12,9 +12,9 @@ Hooks.once('init', () => {
 			default: true,
 		},
 		{
-			key: 'soulstrike-toggle',
-			name: 'Soulstrike Toggle',
-			hint: 'Toggles the automation of the Soulstrike system.',
+			key: 'soul-toggle',
+			name: 'Soul Toggle',
+			hint: 'Toggles the automation of the Soul system.',
 			type: Boolean,
 			default: true,
 		},
@@ -28,7 +28,7 @@ Hooks.once('init', () => {
 		{
 			key: 'chat-message-toggle',
 			name: 'Toggle Chat Messages',
-			hint: 'Toggles messages in chat for Soulstrike and Endurance.',
+			hint: 'Toggles messages in chat for Soul and Endurance.',
 			type: Boolean,
 			default: false,
 		},
@@ -40,18 +40,18 @@ Hooks.once('init', () => {
 			default: false,
 		},
 		{
-			key: 'soulstrike-item-blacklist',
-			name: 'Soulstrike Item Blacklist',
-			hint: 'Comma-separated list of item names that should not generate Soulstrike.',
+			key: 'soul-item-blacklist',
+			name: 'Soul Item Blacklist',
+			hint: 'Comma-separated list of item names that should not generate Soul.',
 			type: String,
 			default: 'Blessed Healer,Flames of Madness',
 		},
 		{
-			key: 'soulstrike-section-blacklist',
-			name: 'Soulstrike Section Blacklist',
-			hint: 'Comma-separated list of Tidy5e sections that should not generate Soulstrike.',
+			key: 'soul-section-blacklist',
+			name: 'Soul Section Blacklist',
+			hint: 'Comma-separated list of Tidy5e sections that should not generate Soul.',
 			type: String,
-			default: 'Soulstrike Burst,Weakness Break',
+			default: 'Soul Burst,Weakness Break',
 		},
 		{
 			key: 'force-reload',
@@ -78,7 +78,7 @@ Hooks.once('init', () => {
 // ── Global API ─────────────────────────────────────────────────────────────────
 
 Hooks.once('ready', () => {
-	globalThis['xenoHomebrewMechanics'] = { endurance, soulstrike, dev, chatLog };
+	globalThis['xenoHomebrewMechanics'] = { endurance, soul, dev, chatLog };
 	dev.debugLog('info', 'Global API registered on xenoHomebrewMechanics');
 });
 
@@ -95,9 +95,9 @@ Hooks.on('renderChatMessage', (message, [html]) => {
 
 Hooks.on('midi-qol.postActiveEffects', async (workflow) => {
 	const enduranceEnabled = game.settings.get('xeno-homebrew-mechanics', 'endurance-toggle');
-	const soulstrikeEnabled = game.settings.get('xeno-homebrew-mechanics', 'soulstrike-toggle');
+	const soulEnabled = game.settings.get('xeno-homebrew-mechanics', 'soul-toggle');
 
-	dev.debugGroupStart(`${workflow.actor.name}: ${workflow.item.name} — endurance: ${enduranceEnabled}, soulstrike: ${soulstrikeEnabled}`);
+	dev.debugGroupStart(`${workflow.actor.name}: ${workflow.item.name} — endurance: ${enduranceEnabled}, soul: ${soulEnabled}`);
 
 	// Stamp lastHit on all targets for damage-less activities (e.g. Magic Missile launcher)
 	// so downstream bolt workflows from the same item/activity/turn are de-duplicated.
@@ -134,12 +134,23 @@ Hooks.on('midi-qol.postActiveEffects', async (workflow) => {
 		dev.debugLog('warning', 'Endurance processing disabled — skipping');
 	}
 
-	if (soulstrikeEnabled) {
-		await soulstrike.calculateSoulstrike(workflow);
+	if (soulEnabled) {
+		await soul.calculateSoul(workflow);
 	} else {
-		dev.debugLog('warning', 'Soulstrike processing disabled — skipping');
+		dev.debugLog('warning', 'Soul processing disabled — skipping');
 	}
 
+	dev.debugGroupEnd();
+});
+
+// ── Long Rest Reset ────────────────────────────────────────────────────────────
+
+Hooks.on('dnd5e.longRest', async (actor) => {
+	if (!game.user.isGM) return;
+	if (!game.settings.get('xeno-homebrew-mechanics', 'soul-toggle')) return;
+
+	dev.debugGroupStart(`Long Rest — Soul Reset: ${actor.name}`);
+	await soul.resetSoul(actor);
 	dev.debugGroupEnd();
 });
 
