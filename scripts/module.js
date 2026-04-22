@@ -51,7 +51,7 @@ Hooks.once('init', () => {
 			name: 'Soul Section Blacklist',
 			hint: 'Comma-separated list of Tidy5e sections that should not generate Soul.',
 			type: String,
-			default: 'Soul Burst,Weakness Break',
+			default: 'Soulburst,Weakness Break',
 		},
 		{
 			key: 'force-reload',
@@ -128,16 +128,25 @@ Hooks.on('midi-qol.postActiveEffects', async (workflow) => {
 	dev.debugWorkflow(workflow);
 	dev.debugDamageList(workflow.damageList);
 
+	const sections = [];
+
 	if (enduranceEnabled) {
-		await endurance.checkEndurance(workflow.damageList, workflow);
+		const s = await endurance.checkEndurance(workflow.damageList, workflow);
+		if (s) sections.push(s);
 	} else {
 		dev.debugLog('warning', 'Endurance processing disabled — skipping');
 	}
 
 	if (soulEnabled) {
-		await soul.calculateSoul(workflow);
+		const s = await soul.calculateSoul(workflow);
+		if (s) sections.push(s);
 	} else {
 		dev.debugLog('warning', 'Soul processing disabled — skipping');
+	}
+
+	if (sections.length > 0) {
+		const divider = '<hr style="border:none; border-top:1px solid #555; margin:5px 0">';
+		await chatLog.send(`<div style="line-height:1.5; font-size:0.95em">${sections.join(divider)}</div>`);
 	}
 
 	dev.debugGroupEnd();

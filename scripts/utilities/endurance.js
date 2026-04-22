@@ -77,7 +77,7 @@ class Endurance {
 	 * @param {Workflow} workflow - The MidiQOL workflow that triggered the hit.
 	 */
 	async checkEndurance(damageList, workflow) {
-		this.#chatMessages = ['<h3>Endurance:</h3>'];
+		this.#chatMessages = [];
 
 		dev.debugGroupStart(`Endurance — "${workflow.item.name}", ${damageList.length} target${damageList.length !== 1 ? 's' : ''}`);
 
@@ -157,9 +157,9 @@ class Endurance {
 
 		dev.debugLog('info', `Pass complete — ${brokenTargets.length} broken target${brokenTargets.length !== 1 ? 's' : ''}`);
 
-		if (this.#chatMessages.length > 1) {
-			await chatLog.send(this.#chatMessages.join('<br>'));
-		}
+		const sectionHtml = this.#chatMessages.length > 0
+			? `<div style="font-weight:bold; border-bottom:1px solid #666; margin-bottom:3px">Endurance</div>${this.#chatMessages.join('')}`
+			: null;
 
 		if (brokenTargets.length > 0) {
 			await this._processBrokenTargets(brokenTargets, workflow, damageTypeFeatures);
@@ -168,6 +168,7 @@ class Endurance {
 		}
 
 		dev.debugGroupEnd();
+		return sectionHtml;
 	}
 
 	// ── Force Break (Public) ───────────────────────────────────────────────────
@@ -211,7 +212,7 @@ class Endurance {
 			this._fireSyntheticRoll(damageType, damageAmount, sourceActor, [targetToken], { ignoreTraits: ['idr', 'idv', 'idi', 'idm', 'ida'] }),
 		]);
 
-		const message = `<h3>Endurance:</h3><br><b>${actor.name}</b>: 0/${enduranceItem.system.uses.max} | (<span style="color:red">FORCE BROKEN</span>) | ${damageType}`;
+		const message = `<div style="font-weight:bold; border-bottom:1px solid #666; margin-bottom:3px">Endurance</div><div><b>${actor.name}</b> &middot; 0/${enduranceItem.system.uses.max} &middot; <span style="color:red; font-weight:bold">FORCE BROKEN</span> &middot; ${damageType}</div>`;
 		await chatLog.send(message);
 
 		dev.debugGroupEnd();
@@ -284,9 +285,9 @@ class Endurance {
 			await this._applyBreak(targetActor, enduranceItem, damageType, null);
 		}
 
-		const statusSuffix = broken ? ' <strong>(BROKEN)</strong>' : '';
+		const statusSuffix = broken ? ' &middot; <span style="color:red; font-weight:bold">BROKEN</span>' : '';
 		this.#chatMessages.push(
-			`<b>${targetActor.name}</b>: ${Endurance.usesDisplay(enduranceItem)} | (<span style="color:red">-${actualReduction}</span>) | ${damageType}${statusSuffix}`,
+			`<div><b>${targetActor.name}</b> &middot; ${Endurance.usesDisplay(enduranceItem)} &middot; <span style="color:red">−${actualReduction} ${damageType}</span>${statusSuffix}</div>`,
 		);
 
 		dev.debugGroupEnd();

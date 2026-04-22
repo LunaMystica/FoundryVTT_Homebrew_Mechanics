@@ -2,7 +2,6 @@
 const { utils: { genericUtils } } = chrisPremades;
 
 import { dev } from './dev.js';
-import { chatLog } from './chatLog.js';
 
 class Soul {
 	// ── Helpers ────────────────────────────────────────────────────────────────
@@ -50,8 +49,10 @@ class Soul {
 	/**
 	 * Main entry point. Validates the workflow, resolves blacklists, then
 	 * independently processes attacker gain and per-target damage-taken gain.
+	 * Returns an HTML section string, or null if nothing happened.
 	 *
 	 * @param {Workflow} workflow
+	 * @returns {Promise<string|null>}
 	 */
 	async calculateSoul(workflow) {
 		dev.debugGroupStart('Soul');
@@ -60,7 +61,7 @@ class Soul {
 		if (workflow.hitTargets.size === 0) {
 			dev.debugLog('warning', 'No targets hit — aborting');
 			dev.debugGroupEnd();
-			return;
+			return null;
 		}
 
 		const itemBlacklist = Soul.getBlacklistSetting('soul-item-blacklist');
@@ -77,11 +78,14 @@ class Soul {
 			`"${itemName}" (${itemSection ?? 'no section'}) — ${workflow.hitTargets.size} hit | blacklist: item=${itemBlacklisted} section=${sectionBlacklisted}`,
 		);
 
-		// Run both independently — neither blocks the other
-		await this._processAttackerGain(workflow, itemBlacklisted, sectionBlacklisted);
-		await this._processTargetGain(workflow, sectionBlacklisted);
+		const attackerLine = await this._processAttackerGain(workflow, itemBlacklisted, sectionBlacklisted);
+		const targetLines = await this._processTargetGain(workflow, sectionBlacklisted);
 
 		dev.debugGroupEnd();
+
+		const allLines = [...(attackerLine ? [attackerLine] : []), ...targetLines];
+		if (allLines.length === 0) return null;
+		return `<div style="font-weight:bold; border-bottom:1px solid #666; margin-bottom:3px">Soul</div>${allLines.join('')}`;
 	}
 
 	// ── Attacker Gain ──────────────────────────────────────────────────────────
@@ -89,10 +93,12 @@ class Soul {
 	/**
 	 * Grants Soul charges to the attacker: flat 4 for attacks, 3 per target for AoE.
 	 * Skipped if the attacker has no Soul item, or if blacklisted.
+	 * Returns a formatted message line, or null if skipped.
 	 *
 	 * @param {Workflow} workflow
 	 * @param {boolean} itemBlacklisted
 	 * @param {boolean} sectionBlacklisted
+	 * @returns {Promise<string|null>}
 	 */
 	async _processAttackerGain(workflow, itemBlacklisted, sectionBlacklisted) {
 		dev.debugGroupStart('Attacker Gain');
@@ -103,13 +109,13 @@ class Soul {
 		if (!sourceItem) {
 			dev.debugLog('warning', `${actor.name} has no Soul item — skipping`);
 			dev.debugGroupEnd();
-			return;
+			return null;
 		}
 
 		if (itemBlacklisted || sectionBlacklisted) {
 			dev.debugLog('warning', 'Blacklisted — skipping attacker gain');
 			dev.debugGroupEnd();
-			return;
+			return null;
 		}
 
 		const isAoe = !!workflow.templateUuid;
@@ -121,7 +127,7 @@ class Soul {
 		if (actualGain === 0) {
 			dev.debugLog('info', `${actor.name}: already at full Soul`);
 			dev.debugGroupEnd();
-			return;
+			return null;
 		}
 
 		const displayBefore = Soul.usesDisplay(sourceItem);
@@ -129,10 +135,8 @@ class Soul {
 		await genericUtils.update(sourceItem, { 'system.uses.spent': newSpent });
 		dev.debugLog('success', `${actor.name}: +${actualGain} | ${displayBefore} → ${displayAfter}`);
 
-		const message = `<b>${actor.name}</b>: ${Soul.usesDisplay(sourceItem)} | (<span style="color:green">+${actualGain}</span>)<hr>`;
-		await chatLog.send(`<h3>Soul:</h3><br>${message}`);
-
 		dev.debugGroupEnd();
+		return `<div><b>${actor.name}</b> &middot; ${Soul.usesDisplay(sourceItem)} &middot; <span style="color:green">+${actualGain}</span> &middot; attack</div>`;
 	}
 
 	// ── Target Gain ────────────────────────────────────────────────────────────
@@ -141,8 +145,10 @@ class Soul {
 	 * Grants Soul charges to each target that took HP damage.
 	 * Resolves all actors in parallel, then processes sequentially.
 	 * Targets without a Soul item are silently skipped.
+	 * Returns an array of formatted message lines.
 	 *
 	 * @param {Workflow} workflow
+	 * @returns {Promise<string[]>}
 	 */
 	async _processTargetGain(workflow, sectionBlacklisted) {
 		dev.debugGroupStart('Target Gain');
@@ -150,13 +156,13 @@ class Soul {
 		if (!workflow.damageList?.length) {
 			dev.debugLog('info', 'No damage list on workflow — skipping');
 			dev.debugGroupEnd();
-			return;
+			return [];
 		}
 
 		if (sectionBlacklisted) {
 			dev.debugLog('warning', 'Section blacklisted — skipping target gain');
 			dev.debugGroupEnd();
-			return;
+			return [];
 		}
 
 		dev.debugLog('info', `Damage list: ${workflow.damageList.length} entr${workflow.damageList.length === 1 ? 'y' : 'ies'}`);
@@ -185,16 +191,13 @@ class Soul {
 		dev.debugLog('info', `${validTargets.length} valid target${validTargets.length !== 1 ? 's' : ''} to process`);
 
 		// ── Process sequentially (updates must be ordered) ────────────────────
-		const chatMessages = [];
+		const lines = [];
 		for (const { actor, hpDamage } of validTargets) {
-			await this._applyDamageTakenGain(actor, hpDamage, chatMessages);
-		}
-
-		if (chatMessages.length > 0) {
-			await chatLog.send('<h3>Soul (Damage Taken):</h3><br>' + chatMessages.join('<br>'));
+			await this._applyDamageTakenGain(actor, hpDamage, lines);
 		}
 
 		dev.debugGroupEnd();
+		return lines;
 	}
 
 	// ── Damage-Taken Gain ──────────────────────────────────────────────────────
@@ -204,9 +207,9 @@ class Soul {
 	 *
 	 * @param {Actor} targetActor
 	 * @param {number} damageValue
-	 * @param {string[]} chatMessages - Mutated in place; caller sends the batch.
+	 * @param {string[]} lines - Mutated in place; caller collects for the batch message.
 	 */
-	async _applyDamageTakenGain(targetActor, damageValue, chatMessages) {
+	async _applyDamageTakenGain(targetActor, damageValue, lines) {
 		const targetItem = targetActor.items.getName('Soul');
 		if (!targetItem) return;
 
@@ -224,7 +227,7 @@ class Soul {
 		await genericUtils.update(targetItem, { 'system.uses.spent': newSpent });
 		dev.debugLog('success', `${targetActor.name}: +${actualGain} from ${damageValue} damage | ${displayBefore} → ${displayAfter}`);
 
-		chatMessages.push(`<b>${targetActor.name}</b>: ${Soul.usesDisplay(targetItem)} | (+<span style="color:green">${actualGain}</span>)`);
+		lines.push(`<div><b>${targetActor.name}</b> &middot; ${Soul.usesDisplay(targetItem)} &middot; <span style="color:green">+${actualGain}</span> &middot; taken</div>`);
 	}
 
 	// ── Long Rest Reset ────────────────────────────────────────────────────────
