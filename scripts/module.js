@@ -94,6 +94,11 @@ Hooks.on('renderChatMessage', (message, [html]) => {
 // ── MidiQOL Workflow ───────────────────────────────────────────────────────────
 
 Hooks.on('midi-qol.postActiveEffects', async (workflow) => {
+	const enduranceEnabled = game.settings.get('xeno-homebrew-mechanics', 'endurance-toggle');
+	const soulstrikeEnabled = game.settings.get('xeno-homebrew-mechanics', 'soulstrike-toggle');
+
+	dev.debugGroupStart(`${workflow.actor.name}: ${workflow.item.name} — endurance: ${enduranceEnabled}, soulstrike: ${soulstrikeEnabled}`);
+
 	// Stamp lastHit on all targets for damage-less activities (e.g. Magic Missile launcher)
 	// so downstream bolt workflows from the same item/activity/turn are de-duplicated.
 	if (!workflow.damageList?.length && workflow.targets?.size) {
@@ -102,6 +107,12 @@ Hooks.on('midi-qol.postActiveEffects', async (workflow) => {
 		await Promise.all(
 			[...workflow.targets].map((token) => {
 				const tokenDoc = token.document ?? token;
+				dev.debugLog('info', `Set lastHit (no damage) for ${tokenDoc.name}`, {
+					itemUuid: workflow.item.uuid,
+					activityUuid: workflow.activity.uuid,
+					round: combatRound,
+					turn: combatTurn,
+				});
 				return tokenDoc.setFlag('xeno-homebrew-mechanics', 'lastHit', {
 					itemUuid: workflow.item.uuid,
 					activityUuid: workflow.activity.uuid,
@@ -114,14 +125,8 @@ Hooks.on('midi-qol.postActiveEffects', async (workflow) => {
 
 	if (!workflow.damageList?.length) return;
 
-	dev.debugGroupStart('Workflow');
 	dev.debugWorkflow(workflow);
 	dev.debugDamageList(workflow.damageList);
-
-	const enduranceEnabled = game.settings.get('xeno-homebrew-mechanics', 'endurance-toggle');
-	const soulstrikeEnabled = game.settings.get('xeno-homebrew-mechanics', 'soulstrike-toggle');
-
-	dev.debugLog('info', `Endurance enabled: ${enduranceEnabled} | Soulstrike enabled: ${soulstrikeEnabled}`);
 
 	if (enduranceEnabled) {
 		await endurance.checkEndurance(workflow.damageList, workflow);

@@ -14,25 +14,30 @@ class Endurance {
 		return `${item.system.uses.value}/${item.system.uses.max}`;
 	}
 
-	static getEnduranceReduction(item) {
+	static getEnduranceReduction(item, isCritical = false) {
+		let base;
 		switch (item.type) {
 			case 'weapon':
-				return 20;
+				base = 1;
+				break;
 
 			case 'spell':
-				return item.name === 'Elemental Bullet' || item.name === 'Sacred Bolt' ? 5 : 40;
+				base = item.system.level === 0 ? 2 : 3;
+				break;
 
 			case 'feat': {
 				const section = item.flags?.['tidy5e-sheet']?.section ?? null;
-				if (section === 'Soulstrike Move') return 40;
-				if (section === 'Soulstrike Burst') return 80;
-				if (section === 'Weakness Break') return 0;
-				return 40;
+				if (section === 'Soulstrike Move') { base = 3; break; }
+				if (section === 'Soulstrike Burst') { base = 6; break; }
+				if (section === 'Weakness Break') { base = 0; break; }
+				base = 3;
+				break;
 			}
 
 			default:
-				return 0;
+				base = 0;
 		}
+		return base === 0 ? 0 : base + (isCritical ? 1 : 0);
 	}
 
 	static groupByDamageType(brokenTargets) {
@@ -74,8 +79,7 @@ class Endurance {
 	async checkEndurance(damageList, workflow) {
 		this.#chatMessages = ['<h3>Endurance:</h3>'];
 
-		dev.debugGroupStart('Endurance');
-		dev.debugLog('info', `Triggered by "${workflow.item.name}" — ${damageList.length} damage target${damageList.length !== 1 ? 's' : ''}`);
+		dev.debugGroupStart(`Endurance — "${workflow.item.name}", ${damageList.length} target${damageList.length !== 1 ? 's' : ''}`);
 
 		// ── Set lastHit flag on hit targets for spells and Soulstrike feats ─────
 		const combatRound = game.combat?.round ?? null;
@@ -89,8 +93,6 @@ class Endurance {
 				[...workflow.hitTargets].map(async (token) => {
 					const tokenDoc = token.document ?? token;
 
-					console.log('Processing token for lastHit flag:', tokenDoc.name);
-					console.log('Target', tokenDoc);
 					const lastHit = tokenDoc.getFlag('xeno-homebrew-mechanics', 'lastHit');
 					if (
 						lastHit?.itemUuid === workflow.item.uuid &&
@@ -106,28 +108,36 @@ class Endurance {
 						round: combatRound,
 						turn: combatTurn,
 					});
+					dev.debugLog('info', `Set lastHit for ${tokenDoc.name}`, {
+						itemUuid: workflow.item.uuid,
+						activityUuid: workflow.activity.uuid,
+						round: combatRound,
+						turn: combatTurn,
+					});
 				}),
 			);
 
-		dev.debugLog('info', `Track hit source: ${shouldTrackHit} | Already-processed: ${alreadyProcessed.size}`);
+		if (shouldTrackHit) dev.debugLog('info', `lastHit tracking: ${alreadyProcessed.size} already-processed this turn`);
 
 		// ── Filter valid targets up front, resolving actors in parallel ────────
 		const validTargets = (
 			await Promise.all(
 				damageList.map(async (target) => {
+					const name = () => fromUuidSync(target.actorUuid)?.name ?? target.actorUuid;
+
 					if (alreadyProcessed.has(target.targetUuid)) {
-						dev.debugLog('info', `Skipping ${target.actorUuid} — already processed by this item/activity this turn`);
+						dev.debugLog('info', `Skip ${name()} — already processed this turn`);
 						return null;
 					}
 
 					if (!target.isHit || workflow.activity.damage.onSave === 'none') {
-						dev.debugLog('info', `Skipping ${target.actorUuid} — not hit or damage on save is none`);
+						dev.debugLog('info', `Skip ${name()} — not hit or no save damage`);
 						return null;
 					}
 
 					const resolved = await Endurance.resolveTarget(target);
 					if (!resolved) {
-						dev.debugLog('warning', `Could not resolve actor or endurance item for UUID: ${target.actorUuid}`);
+						dev.debugLog('warning', `Could not resolve actor or endurance item: ${name()}`);
 						return null;
 					}
 
@@ -174,7 +184,7 @@ class Endurance {
 	 */
 	async forceBreakEndurance(actor, damageType, damageAmount, sourceActor) {
 		dev.debugGroupStart(`Force Break — ${actor.name}`);
-		dev.debugLog('info', `type="${damageType}", damage=${damageAmount}, source="${sourceActor.name}"`);
+		dev.debugLog('info', `${damageType} ${damageAmount} from ${sourceActor.name}`);
 
 		const enduranceItem = actor.items.getName('Endurance');
 		if (!enduranceItem) {
@@ -183,12 +193,10 @@ class Endurance {
 		}
 
 		if (enduranceItem.system.uses.spent >= enduranceItem.system.uses.max) {
-			dev.debugLog('info', `${actor.name}'s endurance is already broken — skipping`);
+			dev.debugLog('info', `${actor.name}: already broken — skipping`);
 			dev.debugGroupEnd();
 			return;
 		}
-
-		dev.debugLog('info', `Current endurance: ${Endurance.usesDisplay(enduranceItem)}`);
 
 		// ── Resolve token before any async mutations ───────────────────────────
 		const targetToken = await this._resolveActorToken(actor);
@@ -224,8 +232,9 @@ class Endurance {
 	async _updateEndurance(targetActor, enduranceItem, target, workflow, brokenTargets) {
 		dev.debugGroupStart(`Update — ${targetActor.name}`);
 
-		const reduction = Endurance.getEnduranceReduction(workflow.item);
-		dev.debugLog('math', `"${workflow.item.name}" (${workflow.item.type}) → reduction: ${reduction}`);
+		const isCritical = workflow.isCritical ?? false;
+		const reduction = Endurance.getEnduranceReduction(workflow.item, isCritical);
+		dev.debugLog('info', `reduction: ${reduction} from "${workflow.item.name}" (${workflow.item.type})${isCritical ? ' [crit +1]' : ''}`);
 
 		if (reduction === 0) {
 			dev.debugLog('warning', 'Reduction is 0 — skipping');
@@ -243,7 +252,7 @@ class Endurance {
 		dev.debugLog('info', `Weaknesses: [${Array.from(weaknesses).join(', ')}]`);
 
 		if (enduranceItem.system.uses.spent >= enduranceItem.system.uses.max) {
-			dev.debugLog('info', `${targetActor.name}'s endurance is already broken — skipping`);
+			dev.debugLog('info', `${targetActor.name}: already broken — skipping`);
 			dev.debugGroupEnd();
 			return;
 		}
@@ -252,23 +261,21 @@ class Endurance {
 
 		const matchedRoll = workflow.damageRolls.find((roll) => weaknesses.has(roll.options.type));
 		if (!matchedRoll) {
-			dev.debugLog('info', 'No damage type matched a weakness — skipping');
+			dev.debugLog('info', `${targetActor.name}: no weakness matched — skipping`);
 			dev.debugGroupEnd();
 			return;
 		}
 
 		const damageType = matchedRoll.options.type;
-		dev.debugLog('info', `Weakness match: "${damageType}" (${matchedRoll.total} damage)`);
-
 		const initialSpent = enduranceItem.system.uses.spent;
 		const newSpent = Math.min(initialSpent + reduction, enduranceItem.system.uses.max);
 		const actualReduction = newSpent - initialSpent;
 		const broken = newSpent >= enduranceItem.system.uses.max;
-
-		dev.debugLog('math', `Spent: ${initialSpent} → ${newSpent} (-${actualReduction}) | broken: ${broken}`);
+		const displayBefore = Endurance.usesDisplay(enduranceItem);
+		const displayAfter = `${enduranceItem.system.uses.max - newSpent}/${enduranceItem.system.uses.max}`;
 
 		await genericUtils.update(enduranceItem, { 'system.uses.spent': newSpent });
-		dev.debugLog('success', `${targetActor.name} endurance updated`);
+		dev.debugLog('success', `${targetActor.name}: ${damageType} (-${actualReduction}) | ${displayBefore} → ${displayAfter}${broken ? ' | BROKEN' : ''}`);
 
 		if (broken) {
 			const targetTokenDocument = await fromUuid(target.targetUuid);
@@ -297,15 +304,9 @@ class Endurance {
 	 * @param {string|null} chatMessageSuffix - Extra text to append to the chat entry, or null.
 	 */
 	async _applyBreak(actor, enduranceItem, damageType, chatMessageSuffix) {
-		dev.debugGroupStart(`Apply Break — ${actor.name}`);
-
 		await genericUtils.update(enduranceItem, { 'system.uses.spent': enduranceItem.system.uses.max });
-		dev.debugLog('success', `${actor.name}'s endurance maxed — broken`);
-
 		await effectUtils.createEffect(actor, endurance_broken_effect);
-		dev.debugLog('info', 'Applied broken endurance effect');
-
-		dev.debugGroupEnd();
+		dev.debugLog('success', `${actor.name}: broken effect applied`);
 	}
 
 	/**
@@ -323,28 +324,23 @@ class Endurance {
 
 		const sourceItemUuid = damageTypeFeatures[damageType];
 		if (!sourceItemUuid) {
-			dev.debugLog('warning', `No source item mapped for damage type "${damageType}" — skipping`);
+			dev.debugLog('warning', `No source item mapped for "${damageType}" — skipping`);
 			dev.debugGroupEnd();
 			return;
 		}
 
 		const sourceItem = await fromUuid(sourceItemUuid);
 		if (!sourceItem) {
-			dev.debugLog('warning', `Could not resolve source item UUID for "${damageType}" — skipping`);
+			dev.debugLog('warning', `Could not resolve source item for "${damageType}" — skipping`);
 			dev.debugGroupEnd();
 			return;
 		}
-
-		dev.debugLog(
-			'info',
-			`Source item: "${sourceItem.name}" — ${damageAmount} ${damageType} damage to ${targetTokens.length} target${targetTokens.length !== 1 ? 's' : ''}`,
-		);
 
 		const activity = sourceItem.system.activities.values().next().value;
 		const activityData = await activityUtils.withChangedDamage(activity, `${damageAmount}`);
 
 		if (!activityData) {
-			dev.debugLog('warning', `No activity data returned for "${sourceItem.name}" — skipping`);
+			dev.debugLog('warning', `No activity data for "${sourceItem.name}" — skipping`);
 			dev.debugGroupEnd();
 			return;
 		}
@@ -355,7 +351,10 @@ class Endurance {
 			activityData.midiProperties.ignoreTraits = options.ignoreTraits;
 		}
 		await workflowUtils.syntheticActivityDataRoll(activityData, sourceItem, sourceActor, targetTokens);
-		dev.debugLog('success', `Synthetic roll fired`);
+		dev.debugLog(
+			'success',
+			`${damageAmount} ${damageType} → ${targetTokens.length} target${targetTokens.length !== 1 ? 's' : ''} via "${sourceItem.name}"`,
+		);
 
 		dev.debugGroupEnd();
 	}
@@ -380,18 +379,12 @@ class Endurance {
 	// ── Broken Target Processing ───────────────────────────────────────────────
 
 	async _processBrokenTargets(brokenTargets, workflow) {
-		dev.debugGroupStart('Broken Targets');
-
 		const grouped = Endurance.groupByDamageType(brokenTargets);
-		dev.debugLog('info', `Damage types to process: [${Object.keys(grouped).join(', ')}]`);
 
 		for (const [damageType, targets] of Object.entries(grouped)) {
 			const totalDamage = Endurance.totalDamageForType(workflow.damageRolls, damageType);
-			dev.debugLog('math', `Total ${damageType} damage: ${totalDamage} across ${targets.length} target${targets.length !== 1 ? 's' : ''}`);
 			await this._fireSyntheticRoll(damageType, totalDamage, workflow.actor, targets);
 		}
-
-		dev.debugGroupEnd();
 	}
 
 	// ── Reset ──────────────────────────────────────────────────────────────────
@@ -402,19 +395,12 @@ class Endurance {
 	 * @throws {Error} If the actor has no Endurance item.
 	 */
 	async resetEndurance(actor) {
-		dev.debugGroupStart(`Reset — ${actor.name}`);
-
 		const item = actor.items.getName('Endurance');
-		if (!item) {
-			dev.debugGroupEnd();
-			throw new Error(`resetEndurance: ${actor.name} has no Endurance item`);
-		}
+		if (!item) throw new Error(`resetEndurance: ${actor.name} has no Endurance item`);
 
-		dev.debugLog('info', `Resetting endurance: ${Endurance.usesDisplay(item)} → 0/${item.system.uses.max}`);
+		const display = Endurance.usesDisplay(item);
 		await genericUtils.update(item, { 'system.uses.spent': 0 });
-		dev.debugLog('success', `${actor.name}'s endurance reset`);
-
-		dev.debugGroupEnd();
+		dev.debugLog('success', `${actor.name}: ${display} → 0/${item.system.uses.max}`);
 	}
 }
 

@@ -5,15 +5,15 @@ class Dev {
 		return game.settings.get('xeno-homebrew-mechanics', 'debug-toggle');
 	}
 
-	static #icons = {
-		info: '🔍',
-		success: '✅',
-		warning: '⚠️',
-		error: '❌',
-		process: '⚙️',
-		target: '🎯',
-		math: '🧮',
-		update: '📝',
+	static #prefix = {
+		info: '[info]',
+		success: '[ok]  ',
+		warning: '[warn]',
+		error: '[err] ',
+		process: '[proc]',
+		target: '[hit] ',
+		math: '[math]',
+		update: '[upd] ',
 	};
 
 	// ── Public API ─────────────────────────────────────────────────────────────
@@ -24,7 +24,7 @@ class Dev {
 	 */
 	debugGroupStart(title) {
 		if (!this.#isDebugEnabled()) return;
-		console.group(`🏠 Homebrew Mechanics: ${title}`);
+		console.group(`HBM | ${title}`);
 	}
 
 	/**
@@ -44,28 +44,40 @@ class Dev {
 	debugLog(category, message, data) {
 		if (!this.#isDebugEnabled()) return;
 
-		const icon = Dev.#icons[category] ?? '📋';
-		console.log(`${icon} ${message}`);
+		const prefix = Dev.#prefix[category] ?? '[log] ';
+		console.log(`${prefix} ${message}`);
 
-		if (data !== undefined) console.log('   Data:', data);
+		if (data !== undefined) console.log('      ', data);
 	}
 
 	/**
-	 * Logs a full MidiQOL workflow object.
+	 * Logs a labelled object inside a collapsed console group (click to expand).
+	 * @param {string} label
+	 * @param {*} data
+	 */
+	debugDump(label, data) {
+		if (!this.#isDebugEnabled()) return;
+		console.groupCollapsed(`[dump]  ${label}`);
+		console.log(data);
+		console.groupEnd();
+	}
+
+	/**
+	 * Logs the full MidiQOL workflow object as a collapsed group.
 	 * @param {Workflow} workflow
 	 */
 	debugWorkflow(workflow) {
 		if (!this.#isDebugEnabled()) return;
-		this.debugLog('process', 'Workflow', workflow);
+		this.debugDump('workflow', workflow);
 	}
 
 	/**
-	 * Logs the damage list if present and non-empty.
+	 * Logs the damage list as a collapsed group, if present and non-empty.
 	 * @param {Object[]} damageList
 	 */
 	debugDamageList(damageList) {
 		if (!this.#isDebugEnabled() || !damageList?.length) return;
-		this.debugLog('target', `Damage list — ${damageList.length} entr${damageList.length !== 1 ? 'ies' : 'y'}`, damageList);
+		this.debugDump(`damageList (${damageList.length})`, damageList);
 	}
 }
 
