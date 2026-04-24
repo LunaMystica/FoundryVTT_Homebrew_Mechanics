@@ -85,7 +85,7 @@ class Soul {
 
 		const allLines = [...(attackerLine ? [attackerLine] : []), ...targetLines];
 		if (allLines.length === 0) return null;
-		return `<div style="font-weight:bold; border-bottom:1px solid #666; margin-bottom:3px">Soul</div>${allLines.join('')}`;
+		return `<div class="hbm-section-header hbm-section-header--soul">Soul</div>${allLines.join('')}`;
 	}
 
 	// ── Attacker Gain ──────────────────────────────────────────────────────────
@@ -136,7 +136,7 @@ class Soul {
 		dev.debugLog('success', `${actor.name}: +${actualGain} | ${displayBefore} → ${displayAfter}`);
 
 		dev.debugGroupEnd();
-		return `<div><b>${actor.name}</b> &middot; ${Soul.usesDisplay(sourceItem)} &middot; <span style="color:green">+${actualGain}</span> &middot; attack</div>`;
+		return `<div class="hbm-row"><span class="hbm-name">${actor.name}</span><span class="hbm-resource">${Soul.usesDisplay(sourceItem)}</span><span class="hbm-delta hbm-delta--gain">+${actualGain}</span><span class="hbm-type">attack</span></div>`;
 	}
 
 	// ── Target Gain ────────────────────────────────────────────────────────────
@@ -227,7 +227,7 @@ class Soul {
 		await genericUtils.update(targetItem, { 'system.uses.spent': newSpent });
 		dev.debugLog('success', `${targetActor.name}: +${actualGain} from ${damageValue} damage | ${displayBefore} → ${displayAfter}`);
 
-		lines.push(`<div><b>${targetActor.name}</b> &middot; ${Soul.usesDisplay(targetItem)} &middot; <span style="color:green">+${actualGain}</span> &middot; taken</div>`);
+		lines.push(`<div class="hbm-row"><span class="hbm-name">${targetActor.name}</span><span class="hbm-resource">${Soul.usesDisplay(targetItem)}</span><span class="hbm-delta hbm-delta--gain">+${actualGain}</span><span class="hbm-type">taken</span></div>`);
 	}
 
 	// ── Long Rest Reset ────────────────────────────────────────────────────────
