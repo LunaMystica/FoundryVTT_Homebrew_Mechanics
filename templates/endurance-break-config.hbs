@@ -1,0 +1,35 @@
+<div class="standard-form endurance-break-config">
+	<p class="hint">
+		Map each damage type to the item UUID used for synthetic rolls when Endurance breaks.
+		Leave blank to skip that damage type.
+	</p>
+	<table>
+		<thead>
+			<tr>
+				<th>Damage Type</th>
+				<th>Item UUID</th>
+			</tr>
+		</thead>
+		<tbody>
+			{{#each damageTypes}}
+			<tr>
+				<td><label for="ebc-{{key}}">{{label}}</label></td>
+				<td>
+					<input
+						id="ebc-{{key}}"
+						type="text"
+						name="{{key}}"
+						value="{{uuid}}"
+						placeholder="Item.xxxxx or Compendium.pack.id.Item.xxxxx"
+					/>
+				</td>
+			</tr>
+			{{/each}}
+		</tbody>
+	</table>
+	<footer class="flexrow">
+		<button type="submit" name="submit">
+			<i class="fas fa-save"></i> Save Changes
+		</button>
+	</footer>
+</div>

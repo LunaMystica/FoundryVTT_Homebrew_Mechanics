@@ -22,7 +22,7 @@ class ChatLog {
 	 * @param {string} [options.speaker='Homebrew Mechanics'] - Speaker alias shown in chat.
 	 * @returns {Promise<void>}
 	 */
-	async send(content, { publicChat = false, speaker = 'Homebrew Mechanics' } = {}) {
+	async send(content, { publicChat = false, speaker = 'HBM' } = {}) {
 		if (!game.settings.get('xeno-homebrew-mechanics', 'chat-message-toggle')) return;
 
 		const chatData = {

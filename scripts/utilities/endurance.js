@@ -1,6 +1,6 @@
 // prettier-ignore
 const { utils: { activityUtils, effectUtils, genericUtils, workflowUtils } } = chrisPremades;
-import { damageTypeFeatures, endurance_broken_effect } from '../../constants/index.js';
+import { endurance_broken_effect } from '../../constants/index.js';
 import { dev } from './dev.js';
 import { chatLog } from './chatLog.js';
 import { isSoul } from './soul.js';
@@ -27,15 +27,24 @@ class Endurance {
 
 			case 'feat': {
 				const section = item.flags?.['tidy5e-sheet']?.section ?? null;
-				if (section === 'Soulstrike') { base = 3; break; }
-				if (section === 'Soulburst') { base = 6; break; }
-				if (section === 'Weakness Break') { base = 0; break; }
+				if (section === 'Soulstrike') {
+					base = 3;
+					break;
+				}
+				if (section === 'Soulburst') {
+					base = 6;
+					break;
+				}
+				if (section === 'Weakness Break') {
+					base = 0;
+					break;
+				}
 				base = 3;
 				break;
 			}
 
 			default:
-				base = 0;
+				base = 1;
 		}
 		return base === 0 ? 0 : base + (isCritical ? 1 : 0);
 	}
@@ -157,12 +166,13 @@ class Endurance {
 
 		dev.debugLog('info', `Pass complete — ${brokenTargets.length} broken target${brokenTargets.length !== 1 ? 's' : ''}`);
 
-		const sectionHtml = this.#chatMessages.length > 0
-			? `<div style="font-weight:bold; border-bottom:1px solid #666; margin-bottom:3px">Endurance</div>${this.#chatMessages.join('')}`
-			: null;
+		const sectionHtml =
+			this.#chatMessages.length > 0
+				? `<div class="hbm-section-header hbm-section-header--endurance">Endurance</div>${this.#chatMessages.join('')}`
+				: null;
 
 		if (brokenTargets.length > 0) {
-			await this._processBrokenTargets(brokenTargets, workflow, damageTypeFeatures);
+			await this._processBrokenTargets(brokenTargets, workflow);
 		} else {
 			dev.debugLog('info', 'No broken targets — done');
 		}
@@ -212,7 +222,7 @@ class Endurance {
 			this._fireSyntheticRoll(damageType, damageAmount, sourceActor, [targetToken], { ignoreTraits: ['idr', 'idv', 'idi', 'idm', 'ida'] }),
 		]);
 
-		const message = `<div style="font-weight:bold; border-bottom:1px solid #666; margin-bottom:3px">Endurance</div><div><b>${actor.name}</b> &middot; 0/${enduranceItem.system.uses.max} &middot; <span style="color:red; font-weight:bold">FORCE BROKEN</span> &middot; ${damageType}</div>`;
+		const message = `<div class="hbm-card"><div class="hbm-section-header hbm-section-header--endurance">Endurance</div><div class="hbm-row"><span class="hbm-name">${actor.name}</span><span class="hbm-resource">0/${enduranceItem.system.uses.max}</span><span class="hbm-type">${damageType}</span><span class="hbm-broken">force broken</span></div></div>`;
 		await chatLog.send(message);
 
 		dev.debugGroupEnd();
@@ -285,9 +295,9 @@ class Endurance {
 			await this._applyBreak(targetActor, enduranceItem, damageType, null);
 		}
 
-		const statusSuffix = broken ? ' &middot; <span style="color:red; font-weight:bold">BROKEN</span>' : '';
+		const brokenBadge = broken ? ' <span class="hbm-broken">broken</span>' : '';
 		this.#chatMessages.push(
-			`<div><b>${targetActor.name}</b> &middot; ${Endurance.usesDisplay(enduranceItem)} &middot; <span style="color:red">−${actualReduction} ${damageType}</span>${statusSuffix}</div>`,
+			`<div class="hbm-row"><span class="hbm-name">${targetActor.name}</span><span class="hbm-resource">${Endurance.usesDisplay(enduranceItem)}</span><span class="hbm-delta hbm-delta--loss">−${actualReduction}</span><span class="hbm-type">${damageType}</span>${brokenBadge}</div>`,
 		);
 
 		dev.debugGroupEnd();
@@ -323,7 +333,8 @@ class Endurance {
 	async _fireSyntheticRoll(damageType, damageAmount, sourceActor, targetTokens, options = {}) {
 		dev.debugGroupStart(`Synthetic Roll — ${damageType}`);
 
-		const sourceItemUuid = damageTypeFeatures[damageType];
+		const damageItems = game.settings.get('xeno-homebrew-mechanics', 'endurance-damage-items');
+		const sourceItemUuid = damageItems[damageType];
 		if (!sourceItemUuid) {
 			dev.debugLog('warning', `No source item mapped for "${damageType}" — skipping`);
 			dev.debugGroupEnd();

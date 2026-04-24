@@ -1,8 +1,26 @@
 import { endurance, soul, dev, chatLog } from './lib/utils.js';
+import { EnduranceBreakConfig } from './apps/enduranceBreakConfig.js';
+import { damageTypeFeatures } from '../constants/index.js';
 
 // ── Settings Registration ──────────────────────────────────────────────────────
 
 Hooks.once('init', () => {
+	game.settings.registerMenu('xeno-homebrew-mechanics', 'endurance-damage-items-menu', {
+		name: 'Endurance Break Items',
+		label: 'Configure',
+		hint: 'Configure which item UUID fires the synthetic damage roll for each damage type when Endurance breaks.',
+		icon: 'fas fa-bolt',
+		type: EnduranceBreakConfig,
+		restricted: true,
+	});
+
+	game.settings.register('xeno-homebrew-mechanics', 'endurance-damage-items', {
+		scope: 'world',
+		config: false,
+		type: Object,
+		default: damageTypeFeatures,
+	});
+
 	const settings = [
 		{
 			key: 'endurance-toggle',
@@ -145,8 +163,7 @@ Hooks.on('midi-qol.postActiveEffects', async (workflow) => {
 	}
 
 	if (sections.length > 0) {
-		const divider = '<hr style="border:none; border-top:1px solid #555; margin:5px 0">';
-		await chatLog.send(`<div style="line-height:1.5; font-size:0.95em">${sections.join(divider)}</div>`);
+		await chatLog.send(`<div class="hbm-card">${sections.join('<hr class="hbm-divider">')}</div>`);
 	}
 
 	dev.debugGroupEnd();

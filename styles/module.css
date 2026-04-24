@@ -1,0 +1,69 @@
+/* ── Homebrew Mechanics Chat Card ─────────────────────────────────────────── */
+
+.hbm-card {
+    font-size: 0.875rem;
+    line-height: 1.6;
+}
+
+.hbm-section-header {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding-bottom: 2px;
+    margin-bottom: 4px;
+    border-bottom: 1px solid currentColor;
+    opacity: 0.8;
+}
+
+.hbm-section-header--endurance { color: #9b2c2c; }
+.hbm-section-header--soul      { color: #2c5282; }
+
+.hbm-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    column-gap: 0.4em;
+    padding: 2px 0;
+    line-height: 1.4;
+}
+
+.hbm-name {
+    font-weight: 600;
+    flex: 0 0 100%;
+}
+
+.hbm-resource {
+    color: #718096;
+    font-size: 0.85em;
+    flex: 0 0 auto;
+    margin-right: auto;
+}
+
+.hbm-delta {
+    font-weight: 700;
+    font-size: 0.95em;
+}
+
+.hbm-delta--gain { color: #276749; }
+.hbm-delta--loss { color: #9b2c2c; }
+
+.hbm-type {
+    color: #718096;
+    font-style: italic;
+    font-size: 0.82em;
+}
+
+.hbm-broken {
+    color: #c53030;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.hbm-divider {
+    border: none;
+    border-top: 1px solid #e2e8f0;
+    margin: 5px 0;
+}
