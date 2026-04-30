@@ -67,3 +67,28 @@
     border-top: 1px solid #e2e8f0;
     margin: 5px 0;
 }
+
+/* ── Endurance Break Config ─────────────────────────────────────────────────── */
+
+#endurance-break-config .window-content {
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    overflow: hidden;
+}
+
+#endurance-break-config .endurance-break-config {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px 12px 12px;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+}
+
+#endurance-break-config .ebc-scroll {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    min-height: 0;
+}
