@@ -2,6 +2,9 @@ import { endurance, soul, dev, chatLog } from './lib/utils.js';
 import { EnduranceBreakConfig } from './apps/enduranceBreakConfig.js';
 import { damageTypeFeatures } from '../constants/index.js';
 
+// prettier-ignore
+const { utils: { genericUtils } } = chrisPremades;
+
 // ── Settings Registration ──────────────────────────────────────────────────────
 
 Hooks.once('init', () => {
@@ -131,11 +134,17 @@ Hooks.on('midi-qol.postActiveEffects', async (workflow) => {
 					round: combatRound,
 					turn: combatTurn,
 				});
-				return tokenDoc.setFlag('xeno-homebrew-mechanics', 'lastHit', {
-					itemUuid: workflow.item.uuid,
-					activityUuid: workflow.activity.uuid,
-					round: combatRound,
-					turn: combatTurn,
+				return genericUtils.update(tokenDoc, {
+					flags: {
+						'xeno-homebrew-mechanics': {
+							lastHit: {
+								itemUuid: workflow.item.uuid,
+								activityUuid: workflow.activity.uuid,
+								round: combatRound,
+								turn: combatTurn,
+							},
+						},
+					},
 				});
 			}),
 		);

@@ -111,11 +111,17 @@ class Endurance {
 					) {
 						alreadyProcessed.add(tokenDoc.uuid);
 					}
-					await tokenDoc.setFlag('xeno-homebrew-mechanics', 'lastHit', {
-						itemUuid: workflow.item.uuid,
-						activityUuid: workflow.activity.uuid,
-						round: combatRound,
-						turn: combatTurn,
+					await genericUtils.update(tokenDoc, {
+						flags: {
+							'xeno-homebrew-mechanics': {
+								lastHit: {
+									itemUuid: workflow.item.uuid,
+									activityUuid: workflow.activity.uuid,
+									round: combatRound,
+									turn: combatTurn,
+								},
+							},
+						},
 					});
 					dev.debugLog('info', `Set lastHit for ${tokenDoc.name}`, {
 						itemUuid: workflow.item.uuid,
