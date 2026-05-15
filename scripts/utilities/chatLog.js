@@ -14,15 +14,15 @@ class ChatLog {
 
 	/**
 	 * Sends a chat message if chat messages are enabled in settings.
-	 * Whispers to GM by default; pass publicChat to broadcast to all players.
+	 * Broadcasts publicly by default; pass publicChat: false to whisper to GM.
 	 *
 	 * @param {string} content - HTML-formatted message content.
 	 * @param {object} [options]
-	 * @param {boolean} [options.publicChat=false] - Broadcast to all players instead of GM whisper.
-	 * @param {string} [options.speaker='Homebrew Mechanics'] - Speaker alias shown in chat.
+	 * @param {boolean} [options.publicChat=true] - Broadcast to all players. Set false to whisper GM.
+	 * @param {string} [options.speaker='HBM'] - Speaker alias shown in chat.
 	 * @returns {Promise<void>}
 	 */
-	async send(content, { publicChat = false, speaker = 'HBM' } = {}) {
+	async send(content, { publicChat = true, speaker = 'HBM' } = {}) {
 		if (!game.settings.get('xeno-homebrew-mechanics', 'chat-message-toggle')) return;
 
 		const chatData = {

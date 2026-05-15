@@ -56,7 +56,7 @@ Hooks.once('init', () => {
 		{
 			key: 'hide-messages-toggle',
 			name: 'Hide Messages Toggle',
-			hint: 'Toggles the hiding of messages in the chat.',
+			hint: 'When on, non-GM players only see chat rows for actors they own. Empty sections and entire messages collapse automatically.',
 			type: Boolean,
 			default: false,
 		},
@@ -106,10 +106,44 @@ Hooks.once('ready', () => {
 // ── Chat Message Visibility ────────────────────────────────────────────────────
 
 Hooks.on('renderChatMessage', (message, [html]) => {
-	const shouldHide =
-		!game.user.isGM && game.settings.get('xeno-homebrew-mechanics', 'hide-messages-toggle') && message.speaker.alias === 'Homebrew Mechanics';
+	if (game.user.isGM) return;
+	if (message.speaker?.alias !== 'HBM') return;
+	if (!game.settings.get('xeno-homebrew-mechanics', 'hide-messages-toggle')) return;
 
-	if (shouldHide) html.style.display = 'none';
+	const card = html.querySelector('.hbm-card');
+	if (!card) return;
+
+	for (const row of card.querySelectorAll('.hbm-row[data-actor-uuid]')) {
+		const actor = fromUuidSync(row.dataset.actorUuid);
+		if (!actor?.testUserPermission(game.user, 'OWNER')) row.style.display = 'none';
+	}
+
+	const entries = [];
+	for (const el of card.children) {
+		if (el.classList.contains('hbm-section-header')) {
+			entries.push({ kind: 'section', header: el, rows: [] });
+		} else if (el.classList.contains('hbm-row')) {
+			const last = entries.at(-1);
+			if (last?.kind === 'section') last.rows.push(el);
+		} else if (el.classList.contains('hbm-divider')) {
+			entries.push({ kind: 'hr', hr: el });
+		}
+	}
+
+	for (const e of entries) {
+		if (e.kind !== 'section') continue;
+		e.visible = e.rows.some((r) => r.style.display !== 'none');
+		if (!e.visible) e.header.style.display = 'none';
+	}
+
+	for (let i = 0; i < entries.length; i++) {
+		if (entries[i].kind !== 'hr') continue;
+		const before = entries.slice(0, i).some((x) => x.kind === 'section' && x.visible);
+		const after = entries.slice(i + 1).some((x) => x.kind === 'section' && x.visible);
+		if (!(before && after)) entries[i].hr.style.display = 'none';
+	}
+
+	if (!entries.some((e) => e.kind === 'section' && e.visible)) html.style.display = 'none';
 });
 
 // ── MidiQOL Workflow ───────────────────────────────────────────────────────────
