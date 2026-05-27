@@ -57,7 +57,9 @@ class Endurance {
 	}
 
 	static totalDamageForType(damageRolls, damageType) {
-		return damageRolls.filter((roll) => roll.options.type === damageType).reduce((sum, roll) => sum + roll.total, 0);
+		return damageRolls
+			.filter((roll) => roll.options.type === damageType)
+			.reduce((sum, roll) => sum + roll.total, 0);
 	}
 
 	/**
@@ -88,14 +90,18 @@ class Endurance {
 	async checkEndurance(damageList, workflow) {
 		this.#chatMessages = [];
 
-		dev.debugGroupStart(`Endurance — "${workflow.item.name}", ${damageList.length} target${damageList.length !== 1 ? 's' : ''}`);
+		dev.debugGroupStart(
+			`Endurance — "${workflow.item.name}", ${damageList.length} target${damageList.length !== 1 ? 's' : ''}`,
+		);
 
 		// ── Set lastHit flag on hit targets for spells and Soul feats ─────────────
 		const combatRound = game.combat?.round ?? null;
 		const combatTurn = game.combat?.turn ?? null;
 		const alreadyProcessed = new Set();
 
-		const shouldTrackHit = workflow.item.type === 'spell' || isSoul(workflow.item);
+		// Multihit tracking only makes sense in combat — outside combat, round/turn are null
+		// and every repeat hit would falsely match. Let all hits through instead.
+		const shouldTrackHit = !!game.combat && (workflow.item.type === 'spell' || isSoul(workflow.item));
 
 		if (shouldTrackHit)
 			await Promise.all(
@@ -132,7 +138,8 @@ class Endurance {
 				}),
 			);
 
-		if (shouldTrackHit) dev.debugLog('info', `lastHit tracking: ${alreadyProcessed.size} already-processed this turn`);
+		if (shouldTrackHit)
+			dev.debugLog('info', `lastHit tracking: ${alreadyProcessed.size} already-processed this turn`);
 
 		// ── Filter valid targets up front, resolving actors in parallel ────────
 		const validTargets = (
@@ -145,8 +152,9 @@ class Endurance {
 						return null;
 					}
 
-					if (!target.isHit || workflow.activity.damage.onSave === 'none') {
-						dev.debugLog('info', `Skip ${name()} — not hit or no save damage`);
+					const tookDamage = (target.hpDamage ?? 0) > 0 || (target.appliedDamage ?? 0) > 0;
+					if (!tookDamage) {
+						dev.debugLog('info', `Skip ${name()} — took no damage`);
 						return null;
 					}
 
@@ -170,7 +178,10 @@ class Endurance {
 			await this._updateEndurance(actor, enduranceItem, target, workflow, brokenTargets);
 		}
 
-		dev.debugLog('info', `Pass complete — ${brokenTargets.length} broken target${brokenTargets.length !== 1 ? 's' : ''}`);
+		dev.debugLog(
+			'info',
+			`Pass complete — ${brokenTargets.length} broken target${brokenTargets.length !== 1 ? 's' : ''}`,
+		);
 
 		const sectionHtml =
 			this.#chatMessages.length > 0
@@ -225,7 +236,9 @@ class Endurance {
 		// ── Break endurance and fire damage roll in parallel ───────────────────
 		await Promise.all([
 			this._applyBreak(actor, enduranceItem, damageType, null),
-			this._fireSyntheticRoll(damageType, damageAmount, sourceActor, [targetToken], { ignoreTraits: ['idr', 'idv', 'idi', 'idm', 'ida'] }),
+			this._fireSyntheticRoll(damageType, damageAmount, sourceActor, [targetToken], {
+				ignoreTraits: ['idr', 'idv', 'idi', 'idm', 'ida'],
+			}),
 		]);
 
 		const message = `<div class="hbm-card"><div class="hbm-section-header hbm-section-header--endurance">Endurance</div><div class="hbm-row" data-actor-uuid="${actor.uuid}"><span class="hbm-name">${actor.name}</span><span class="hbm-resource">0/${enduranceItem.system.uses.max}</span><span class="hbm-type">${damageType}</span><span class="hbm-broken">force broken</span></div></div>`;
@@ -251,7 +264,10 @@ class Endurance {
 
 		const isCritical = workflow.isCritical ?? false;
 		const reduction = Endurance.getEnduranceReduction(workflow.item, isCritical);
-		dev.debugLog('info', `reduction: ${reduction} from "${workflow.item.name}" (${workflow.item.type})${isCritical ? ' [crit +1]' : ''}`);
+		dev.debugLog(
+			'info',
+			`reduction: ${reduction} from "${workflow.item.name}" (${workflow.item.type})${isCritical ? ' [crit +1]' : ''}`,
+		);
 
 		if (reduction === 0) {
 			dev.debugLog('warning', 'Reduction is 0 — skipping');
@@ -292,7 +308,10 @@ class Endurance {
 		const displayAfter = `${enduranceItem.system.uses.max - newSpent}/${enduranceItem.system.uses.max}`;
 
 		await genericUtils.update(enduranceItem, { 'system.uses.spent': newSpent });
-		dev.debugLog('success', `${targetActor.name}: ${damageType} (-${actualReduction}) | ${displayBefore} → ${displayAfter}${broken ? ' | BROKEN' : ''}`);
+		dev.debugLog(
+			'success',
+			`${targetActor.name}: ${damageType} (-${actualReduction}) | ${displayBefore} → ${displayAfter}${broken ? ' | BROKEN' : ''}`,
+		);
 
 		if (broken) {
 			const targetTokenDocument = await fromUuid(target.targetUuid);
