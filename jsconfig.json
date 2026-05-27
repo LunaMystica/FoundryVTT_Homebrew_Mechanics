@@ -1,8 +1,17 @@
 {
-    "include": [
-        "foundry/**/*.mjs",
-        "foundry/client/",
-        "foundry/client-esm/",
-        "foundry/common/"
-    ]
+	"compilerOptions": {
+		"checkJs": true,
+		"moduleResolution": "bundler",
+		"target": "ES2022",
+		"noEmit": true
+	},
+	"include": [
+		"./**/*.js",
+		"../../Foundry Types/globals.js",
+		"foundry/**/*.mjs",
+		"foundry/client/",
+		"foundry/client-esm/",
+		"foundry/common/"
+	],
+	"exclude": ["node_modules"]
 }

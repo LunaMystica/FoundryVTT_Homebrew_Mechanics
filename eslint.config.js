@@ -1,43 +1,49 @@
-import eslintPluginPrettier from 'eslint-plugin-prettier';
-import eslintConfigPrettier from 'eslint-config-prettier';
-import eslintPluginUnusedImports from 'eslint-plugin-unused-imports';
+import js from '@eslint/js';
+import globals from 'globals';
+import { defineConfig } from 'eslint/config';
 
-export default [
+export default defineConfig([
 	{
-		files: ['**/*.js'],
-		plugins: {
-			prettier: eslintPluginPrettier,
-			'unused-imports': eslintPluginUnusedImports,
-		},
+		files: ['**/*.{js,mjs,cjs}'],
+		plugins: { js },
+		extends: ['js/recommended'],
+		languageOptions: {
+			ecmaVersion: 'latest',
+			sourceType: 'module',
+			globals: {
+				...globals.browser,
 
-		rules: {
-			...eslintConfigPrettier.rules,
-			'prettier/prettier': ['warn', { endOfLine: 'auto' }],
+				// Foundry core globals
+				game: 'readonly',
+				ui: 'readonly',
+				canvas: 'readonly',
+				CONFIG: 'readonly',
+				CONST: 'readonly',
+				Hooks: 'readonly',
+				foundry: 'readonly',
 
-			// Treat all code as script
-			parserOptions: {
-				sourceType: 'script',
+				// Common Foundry helpers you use in macros
+				fromUuid: 'readonly',
+				fromUuidSync: 'readonly',
+
+				// Sequencer module globals
+				Sequencer: 'readonly',
+				Sequence: 'readonly',
+
+				// Chris's Premades global
+				chrisPremades: 'readonly',
+
+				// ChrisPremades macro context variables (commonly injected)
+				actor: 'readonly',
+				token: 'readonly',
+				item: 'readonly',
+				workflow: 'readonly',
+				args: 'readonly',
 			},
-
-			// Increase max line length
-			'max-len': ['warn', { code: 160 }],
-
-			'editor.formatOnSave': true,
-
-			// Turn off default rule
-			'no-unused-vars': 'off',
-
-			// Use unused-imports instead
-			'unused-imports/no-unused-imports': 'warn',
-			'unused-imports/no-unused-vars': [
-				'warn',
-				{
-					vars: 'all',
-					varsIgnorePattern: '^_',
-					args: 'after-used',
-					argsIgnorePattern: '^_',
-				},
-			],
+		},
+		rules: {
+			// keep this: it’s what helps shrink your destructuring over time
+			'no-unused-vars': ['warn', { vars: 'all', args: 'after-used' }],
 		},
 	},
-];
+]);
