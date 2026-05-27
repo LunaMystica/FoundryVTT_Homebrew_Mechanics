@@ -227,7 +227,9 @@ class Soul {
 		await genericUtils.update(targetItem, { 'system.uses.spent': newSpent });
 		dev.debugLog('success', `${targetActor.name}: +${actualGain} from ${damageValue} damage | ${displayBefore} → ${displayAfter}`);
 
-		lines.push(`<div class="hbm-row" data-actor-uuid="${targetActor.uuid}"><span class="hbm-name">${targetActor.name}</span><span class="hbm-resource">${Soul.usesDisplay(targetItem)}</span><span class="hbm-delta hbm-delta--gain">+${actualGain}</span><span class="hbm-type">taken</span></div>`);
+		lines.push(
+			`<div class="hbm-row" data-actor-uuid="${targetActor.uuid}"><span class="hbm-name">${targetActor.name}</span><span class="hbm-resource">${Soul.usesDisplay(targetItem)}</span><span class="hbm-delta hbm-delta--gain">+${actualGain}</span><span class="hbm-type">taken</span></div>`,
+		);
 	}
 
 	// ── Long Rest Reset ────────────────────────────────────────────────────────
@@ -241,7 +243,7 @@ class Soul {
 		if (!item) return;
 
 		dev.debugLog('info', `${actor.name}: resetting Soul (was ${Soul.usesDisplay(item)})`);
-		await genericUtils.update(item, { 'system.uses.spent': 0 });
+		await genericUtils.update(item, { 'system.uses.spent': item.system.uses.max });
 		dev.debugLog('success', `${actor.name}: Soul reset to full`);
 	}
 }
