@@ -1,94 +1,418 @@
 /* ── Homebrew Mechanics Chat Card ─────────────────────────────────────────── */
 
 .hbm-card {
-    font-size: 0.875rem;
-    line-height: 1.6;
+	font-size: 0.875rem;
+	line-height: 1.6;
 }
 
 .hbm-section-header {
-    font-size: 0.68rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    padding-bottom: 2px;
-    margin-bottom: 4px;
-    border-bottom: 1px solid currentColor;
-    opacity: 0.8;
+	font-size: 0.68rem;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.1em;
+	padding-bottom: 2px;
+	margin-bottom: 4px;
+	border-bottom: 1px solid currentColor;
+	opacity: 0.8;
 }
 
-.hbm-section-header--endurance { color: #9b2c2c; }
-.hbm-section-header--soul      { color: #2c5282; }
+.hbm-section-header--endurance {
+	color: #9b2c2c;
+}
+.hbm-section-header--soul {
+	color: #2c5282;
+}
 
 .hbm-row {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    column-gap: 0.4em;
-    padding: 2px 0;
-    line-height: 1.4;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	column-gap: 0.4em;
+	padding: 2px 0;
+	line-height: 1.4;
 }
 
 .hbm-name {
-    font-weight: 600;
-    flex: 0 0 100%;
+	font-weight: 600;
+	flex: 0 0 100%;
 }
 
 .hbm-resource {
-    color: #718096;
-    font-size: 0.85em;
-    flex: 0 0 auto;
-    margin-right: auto;
+	color: #718096;
+	font-size: 0.85em;
+	flex: 0 0 auto;
+	margin-right: auto;
 }
 
 .hbm-delta {
-    font-weight: 700;
-    font-size: 0.95em;
+	font-weight: 700;
+	font-size: 0.95em;
 }
 
-.hbm-delta--gain { color: #276749; }
-.hbm-delta--loss { color: #9b2c2c; }
+.hbm-delta--gain {
+	color: #276749;
+}
+.hbm-delta--loss {
+	color: #9b2c2c;
+}
 
 .hbm-type {
-    color: #718096;
-    font-style: italic;
-    font-size: 0.82em;
+	color: #718096;
+	font-style: italic;
+	font-size: 0.82em;
 }
 
 .hbm-broken {
-    color: #c53030;
-    font-size: 0.68rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
+	color: #c53030;
+	font-size: 0.68rem;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
 }
 
 .hbm-divider {
-    border: none;
-    border-top: 1px solid #e2e8f0;
-    margin: 5px 0;
+	border: none;
+	border-top: 1px solid #e2e8f0;
+	margin: 5px 0;
+}
+
+/* ── Tidy5e Sheet Meters ──────────────────────────────────────────────────── */
+
+/* Centralised meter colours.
+   `--hbm-base-*` is the canonical hue — defaults track the Tidy theme palette
+   (hex fallbacks); the `meter-color-*` world settings override these via an
+   injected <style> (see Meters.applyColors).
+   `--hbm-color-*` is the colour the meters use; it defaults to the base hue and
+   is tinted per-actor with the sheet's Tidy accent inline (Meters._applyActorColors). */
+.tidy5e-sheet {
+	--hbm-base-endurance: var(--t5e-color-palette-red-45, #9b2c2c);
+	--hbm-base-soul: var(--t5e-color-palette-blue-57, #2c5282);
+	--hbm-base-soulstrike: var(--t5e-color-palette-purple-59, #6b46c1);
+	--hbm-base-soulburst: var(--t5e-color-palette-pink-55, #b83280);
+
+	--hbm-color-endurance: var(--hbm-base-endurance);
+	--hbm-color-soul: var(--hbm-base-soul);
+	--hbm-color-soulstrike: var(--hbm-base-soulstrike);
+	--hbm-color-soulburst: var(--hbm-base-soulburst);
+
+	/* Halo colour behind coloured labels/pips (set per-theme inline by JS). */
+	--hbm-contrast: rgba(0, 0, 0, 0.7);
+}
+
+/* Outline halo that keeps coloured text/icons legible on busy backgrounds. */
+.hbm-meter__label,
+.hbm-charges__label,
+.hbm-charges__icons {
+	text-shadow:
+		0 0 2px var(--hbm-contrast),
+		0 0 3px var(--hbm-contrast);
+}
+
+.hbm-meters {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	width: 100%;
+	box-sizing: border-box;
+}
+
+.hbm-meters:not(:empty) {
+	margin: 6px 0;
+}
+
+/* Classic: full-width strip below the header. Blend with the header background
+   and match its horizontal padding so it reads as an extension of the header,
+   spanning under both the portrait and the stats. Both bars share one row.
+   (`:has(.hbm-meter)` scopes this to the classic markup; Quadrone uses `.hbm-bar`.) */
+.hbm-meters:has(.hbm-meter) {
+	flex-direction: row;
+	align-items: flex-end;
+	gap: 1rem;
+	margin: 0;
+	padding: 0.25rem 1rem 0.75rem;
+	background: var(--t5e-header-background);
+}
+
+/* Distribute the top-level units (Endurance bar | Soul cluster) across the row. */
+.hbm-meters:has(.hbm-meter) > .hbm-meter,
+.hbm-meters:has(.hbm-meter) > .hbm-cluster {
+	flex: 1 1 0;
+}
+
+/* ── Soul cluster (charge meters stacked above the group's bar) ────────────── */
+
+.hbm-cluster {
+	display: flex;
+	flex-direction: column;
+	gap: 3px;
+	min-width: 0;
+}
+
+.hbm-cluster__charges {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 2px 0.75rem;
+}
+
+/* Pack the charge groups to the left so they don't crowd the adjacent
+   inspiration / level block on the right of the Quadrone header. */
+.hbm-cluster__charges .hbm-charges {
+	flex: 0 1 auto;
+}
+
+/* ── Charge meters: pips (diamonds) / stars ───────────────────────────────── */
+
+.hbm-charges {
+	--hbm-charge-color: #4a5568;
+	display: flex;
+	align-items: center;
+	gap: 0.35em;
+	min-width: 0;
+}
+
+.hbm-charges--soulstrike {
+	--hbm-charge-color: var(--hbm-color-soulstrike);
+}
+.hbm-charges--soulburst {
+	--hbm-charge-color: var(--hbm-color-soulburst);
+}
+
+.hbm-charges__label {
+	font-weight: 600;
+	font-size: 0.62rem;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	white-space: nowrap;
+	color: var(--hbm-charge-color);
+}
+
+.hbm-charges__icons {
+	display: inline-flex;
+	gap: 0.12em;
+	color: var(--hbm-charge-color);
+}
+
+.hbm-charges__icons i {
+	font-size: 0.7rem;
+	line-height: 1;
+}
+
+/* Empty pips/stars are dimmed. */
+.hbm-charges__icons .hbm-empty {
+	opacity: 0.35;
+}
+
+.hbm-charges--editable .hbm-charges__icons i {
+	cursor: pointer;
+}
+
+.hbm-meter {
+	--hbm-meter-color: #4a5568;
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+	box-sizing: border-box;
+}
+
+.hbm-meter--endurance {
+	--hbm-meter-color: var(--hbm-color-endurance);
+}
+.hbm-meter--soul {
+	--hbm-meter-color: var(--hbm-color-soul);
+}
+
+.hbm-meter__head {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	flex-wrap: wrap;
+	gap: 0 0.4em;
+	min-width: 0;
+}
+
+.hbm-meter__label {
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	font-size: 0.62rem;
+	line-height: 1.5;
+	white-space: nowrap;
+	color: var(--hbm-meter-color);
+}
+
+.hbm-meter__count {
+	display: inline-flex;
+	align-items: baseline;
+	gap: 0.1em;
+	font-size: 0.72rem;
+	white-space: nowrap;
+	font-variant-numeric: tabular-nums;
+	color: var(--color-text-dark-secondary, #4b4a44);
+}
+
+.hbm-meter__input {
+	width: 2.4em;
+	height: 1.4em;
+	padding: 0 1px;
+	text-align: right;
+	font: inherit;
+	font-variant-numeric: tabular-nums;
+	background: rgba(0, 0, 0, 0.05);
+	border: 1px solid var(--t5e-faint-color, rgba(0, 0, 0, 0.15));
+	border-radius: 3px;
+	-moz-appearance: textfield;
+	appearance: textfield;
+}
+
+.hbm-meter__input::-webkit-outer-spin-button,
+.hbm-meter__input::-webkit-inner-spin-button {
+	-webkit-appearance: none;
+	margin: 0;
+}
+
+.hbm-meter__sep {
+	opacity: 0.5;
+}
+
+.hbm-meter__track {
+	height: 8px;
+	background: rgba(0, 0, 0, 0.18);
+	border-radius: 4px;
+	overflow: hidden;
+	cursor: pointer;
+}
+
+.hbm-meter__fill {
+	height: 100%;
+	min-width: 2px;
+	background: var(--hbm-meter-color);
+	border-radius: 4px;
+	transition: width 0.2s ease;
+}
+
+/* ── Quadrone: native .meter bars (match HP / Hit Die) ─────────────────────── */
+
+/* Both bars share one compact row (adds the least height to the name column).
+   Left margin matches the name's `--header-padding` so the bars line up with it. */
+.tidy5e-sheet.application.quadrone .hbm-meters {
+	flex-direction: row;
+	align-items: flex-end;
+	gap: 0.5rem;
+	margin: 4px 0 4px var(--header-padding);
+}
+
+/* Distribute the top-level units (Endurance bar | Soul cluster) across the row.
+   `align-self: flex-end` overrides the native `.meter { align-self: stretch }`
+   so the Endurance bar sits level with the Soul bar instead of stretching tall. */
+.tidy5e-sheet.application.quadrone .hbm-meters > .meter,
+.tidy5e-sheet.application.quadrone .hbm-meters > .hbm-cluster {
+	flex: 1 1 0;
+	min-width: 0;
+	align-self: flex-end;
+}
+
+/* The Soul bar inside the cluster keeps its natural height (native `.meter`
+   uses flex:1 0 0, which would stretch it vertically in the cluster column). */
+.tidy5e-sheet.application.quadrone .hbm-cluster .meter {
+	flex: 0 0 auto;
+}
+
+/* Gradient stops + border are derived from the single base colour so one
+   variable (theme default or override) drives the whole bar. */
+.tidy5e-sheet.application.quadrone .meter.hbm-bar--endurance {
+	--bar-background: linear-gradient(
+		to right,
+		color-mix(in srgb, var(--hbm-color-endurance) 78%, #000) 0%,
+		var(--hbm-color-endurance) 100%
+	);
+	--bar-border-color: color-mix(in srgb, var(--hbm-color-endurance) 78%, #000);
+}
+
+.tidy5e-sheet.application.quadrone .meter.hbm-bar--soul {
+	--bar-background: linear-gradient(
+		to right,
+		color-mix(in srgb, var(--hbm-color-soul) 78%, #000) 0%,
+		var(--hbm-color-soul) 100%
+	);
+	--bar-border-color: color-mix(in srgb, var(--hbm-color-soul) 78%, #000);
+}
+
+/* Spread the name to the left and the value/max to the right. */
+.tidy5e-sheet.application.quadrone .hbm-bar__label {
+	justify-content: space-between;
+}
+
+.tidy5e-sheet.application.quadrone .hbm-bar__name {
+	font-weight: 600;
+}
+
+/* Inline edit field overlays the bar like the native HP input. */
+.tidy5e-sheet.application.quadrone .hbm-bar__input {
+	inline-size: 100%;
+	block-size: 100%;
+	padding: 0 0.5rem;
+	border: none;
+	background: transparent;
+	text-align: center;
+	font: inherit;
+	color: var(--t5e-color-text-default);
+	-moz-appearance: textfield;
+	appearance: textfield;
+}
+
+.tidy5e-sheet.application.quadrone .hbm-bar__input::-webkit-outer-spin-button,
+.tidy5e-sheet.application.quadrone .hbm-bar__input::-webkit-inner-spin-button {
+	-webkit-appearance: none;
+	margin: 0;
+}
+
+/* ── Critically-low warning (pulsing red glow) ────────────────────────────── */
+
+@keyframes hbm-critical-pulse {
+	0%,
+	100% {
+		box-shadow: 0 0 0 0 rgba(229, 57, 53, 0);
+	}
+	50% {
+		box-shadow: 0 0 0.5rem 0.125rem rgba(229, 57, 53, 0.85);
+	}
+}
+
+/* Quadrone: glow the whole bar. Classic: glow the track. */
+.hbm-bar.hbm-critical,
+.hbm-meter.hbm-critical .hbm-meter__track {
+	animation: hbm-critical-pulse 2.5s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.hbm-bar.hbm-critical,
+	.hbm-meter.hbm-critical .hbm-meter__track {
+		animation: none;
+	}
 }
 
 /* ── Endurance Break Config ─────────────────────────────────────────────────── */
 
 #endurance-break-config .window-content {
-    display: flex;
-    flex-direction: column;
-    padding: 0;
-    overflow: hidden;
+	display: flex;
+	flex-direction: column;
+	padding: 0;
+	overflow: hidden;
 }
 
 #endurance-break-config .endurance-break-config {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding: 8px 12px 12px;
-    flex: 1 1 auto;
-    min-height: 0;
-    overflow: hidden;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	padding: 8px 12px 12px;
+	flex: 1 1 auto;
+	min-height: 0;
+	overflow: hidden;
 }
 
 #endurance-break-config .ebc-scroll {
-    flex: 1 1 auto;
-    overflow-y: auto;
-    min-height: 0;
+	flex: 1 1 auto;
+	overflow-y: auto;
+	min-height: 0;
 }

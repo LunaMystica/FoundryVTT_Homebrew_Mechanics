@@ -1,4 +1,4 @@
-import { endurance, soul, dev, chatLog } from './lib/utils.js';
+import { endurance, soul, meters, meterColors, dev, chatLog } from './lib/utils.js';
 import { EnduranceBreakConfig } from './apps/enduranceBreakConfig.js';
 import { damageTypeFeatures } from '../constants/index.js';
 
@@ -54,6 +54,13 @@ Hooks.once('init', () => {
 			default: false,
 		},
 		{
+			key: 'meters-toggle',
+			name: 'Toggle Sheet Meters',
+			hint: 'Shows the Endurance and Soul meters on Tidy5e character sheets.',
+			type: Boolean,
+			default: true,
+		},
+		{
 			key: 'hide-messages-toggle',
 			name: 'Hide Messages Toggle',
 			hint: 'When on, non-GM players only see chat rows for actors they own. Empty sections and entire messages collapse automatically.',
@@ -93,14 +100,51 @@ Hooks.once('init', () => {
 		});
 	}
 
+	// Per-meter colour overrides (blank = Tidy theme default). Re-apply live on change.
+	for (const { key, label } of meterColors) {
+		game.settings.register('xeno-homebrew-mechanics', `meter-color-${key}`, {
+			name: `${label} Meter Color`,
+			hint: `Override the ${label} meter colour. Leave blank to use the Tidy theme default.`,
+			scope: 'world',
+			config: true,
+			type: String,
+			default: '',
+			onChange: () => meters.applyColors(),
+		});
+	}
+
 	console.log('xeno-homebrew-mechanics | Loaded');
 });
 
 // ── Global API ─────────────────────────────────────────────────────────────────
 
 Hooks.once('ready', () => {
-	globalThis['xenoHomebrewMechanics'] = { endurance, soul, dev, chatLog };
+	globalThis['xenoHomebrewMechanics'] = { endurance, soul, meters, dev, chatLog };
+	meters.applyColors();
 	dev.debugLog('info', 'Global API registered on xenoHomebrewMechanics');
+});
+
+// ── Tidy5e Sheet Meters ────────────────────────────────────────────────────────
+
+Hooks.once('tidy5e-sheet.ready', (api) => {
+	meters.register(api);
+});
+
+// Add a native colour picker beside each meter-colour setting (blank = default).
+Hooks.on('renderSettingsConfig', (app, [form]) => {
+	for (const { key, fallback } of meterColors) {
+		const input = form.querySelector(`input[name="xeno-homebrew-mechanics.meter-color-${key}"]`);
+		if (!input || input.dataset.hbmPicker) continue;
+		input.dataset.hbmPicker = 'true';
+		input.placeholder = 'Theme default';
+
+		const picker = document.createElement('input');
+		picker.type = 'color';
+		picker.value = input.value || fallback;
+		picker.addEventListener('input', () => (input.value = picker.value));
+		input.addEventListener('input', () => (picker.value = input.value || fallback));
+		input.insertAdjacentElement('afterend', picker);
+	}
 });
 
 // ── Chat Message Visibility ────────────────────────────────────────────────────
@@ -152,7 +196,9 @@ Hooks.on('midi-qol.postActiveEffects', async (workflow) => {
 	const enduranceEnabled = game.settings.get('xeno-homebrew-mechanics', 'endurance-toggle');
 	const soulEnabled = game.settings.get('xeno-homebrew-mechanics', 'soul-toggle');
 
-	dev.debugGroupStart(`${workflow.actor.name}: ${workflow.item.name} — endurance: ${enduranceEnabled}, soul: ${soulEnabled}`);
+	dev.debugGroupStart(
+		`${workflow.actor.name}: ${workflow.item.name} — endurance: ${enduranceEnabled}, soul: ${soulEnabled}`,
+	);
 
 	// Stamp lastHit on all targets for damage-less activities (e.g. Magic Missile launcher)
 	// so downstream bolt workflows from the same item/activity/turn are de-duplicated.
@@ -238,7 +284,10 @@ Hooks.on('deleteCombat', async (combat) => {
 			try {
 				await endurance.resetEndurance(combatant.actor);
 			} catch (err) {
-				dev.debugLog('warning', `Could not reset endurance for ${combatant.actor?.name ?? 'unknown'}: ${err.message}`);
+				dev.debugLog(
+					'warning',
+					`Could not reset endurance for ${combatant.actor?.name ?? 'unknown'}: ${err.message}`,
+				);
 			}
 		}),
 	);
