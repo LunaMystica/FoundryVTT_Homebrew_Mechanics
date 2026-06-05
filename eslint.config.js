@@ -4,10 +4,10 @@ import unusedImports from 'eslint-plugin-unused-imports';
 import { defineConfig } from 'eslint/config';
 
 export default defineConfig([
-	// Vendored Foundry source (kept for jsconfig type checking), deps, and the
-	// git-ignored standalone debug macros (run in Foundry's injected-global context).
+	// Installed deps and the git-ignored standalone debug macros
+	// (run in Foundry's injected-global context).
 	{
-		ignores: ['foundry/**', 'node_modules/**', 'scripts/debug/**'],
+		ignores: ['node_modules/**', 'scripts/debug/**'],
 	},
 	{
 		files: ['**/*.{js,mjs,cjs}'],
