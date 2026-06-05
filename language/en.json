@@ -63,7 +63,9 @@
 			"Attack": "attack",
 			"Taken": "taken",
 			"Broken": "broken",
-			"ForceBroken": "force broken"
+			"ForceBroken": "force broken",
+			"PanToToken": "Pan to token",
+			"NoToken": "{name} has no token on the current scene."
 		}
 	}
 }

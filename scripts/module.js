@@ -195,6 +195,45 @@ Hooks.on('renderChatMessage', (message, [html]) => {
 	if (!entries.some((e) => e.kind === 'section' && e.visible)) html.style.display = 'none';
 });
 
+// ── Clickable Chat Names → Pan to Token ──────────────────────────────────────────
+
+/**
+ * Pan the canvas to an actor's token on the current scene (and select it if owned).
+ * Mirrors the combat tracker's pan-to-combatant behaviour.
+ * @param {string} actorUuid
+ */
+async function panToActorToken(actorUuid) {
+	if (!canvas.ready) return;
+	const actor = await fromUuid(actorUuid);
+	if (!actor) return;
+
+	const token = actor.token?.object ?? actor.getActiveTokens(false, false)[0];
+	if (!token) {
+		ui.notifications.warn(game.i18n.format('XHM.Chat.NoToken', { name: actor.name }));
+		return;
+	}
+	if (!token.visible) {
+		ui.notifications.warn(game.i18n.localize('COMBAT.WarnNonVisibleToken'));
+		return;
+	}
+
+	if (token.isOwner) token.control({ releaseOthers: true });
+	await canvas.animatePan({ ...token.center, scale: Math.max(canvas.stage.scale.x, 0.5) });
+}
+
+// Make actor names in HBM chat cards clickable to jump to their token (all users).
+Hooks.on('renderChatMessage', (message, [html]) => {
+	if (message.speaker?.alias !== 'HBM') return;
+
+	for (const row of html.querySelectorAll('.hbm-row[data-actor-uuid]')) {
+		const name = row.querySelector('.hbm-name');
+		if (!name) continue;
+		name.classList.add('hbm-name--link');
+		name.title = game.i18n.localize('XHM.Chat.PanToToken');
+		name.addEventListener('click', () => panToActorToken(row.dataset.actorUuid));
+	}
+});
+
 // ── MidiQOL Workflow ───────────────────────────────────────────────────────────
 
 Hooks.on('midi-qol.postActiveEffects', async (workflow) => {

@@ -37,6 +37,15 @@
 	flex: 0 0 100%;
 }
 
+.hbm-name--link {
+	cursor: pointer;
+}
+
+.hbm-name--link:hover {
+	text-decoration: underline dotted;
+	text-underline-offset: 2px;
+}
+
 .hbm-resource {
 	color: #718096;
 	font-size: 0.85em;
