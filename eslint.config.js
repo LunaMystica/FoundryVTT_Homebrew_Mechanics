@@ -1,11 +1,17 @@
 import js from '@eslint/js';
 import globals from 'globals';
+import unusedImports from 'eslint-plugin-unused-imports';
 import { defineConfig } from 'eslint/config';
 
 export default defineConfig([
+	// Vendored Foundry source (kept for jsconfig type checking), deps, and the
+	// git-ignored standalone debug macros (run in Foundry's injected-global context).
+	{
+		ignores: ['foundry/**', 'node_modules/**', 'scripts/debug/**'],
+	},
 	{
 		files: ['**/*.{js,mjs,cjs}'],
-		plugins: { js },
+		plugins: { js, 'unused-imports': unusedImports },
 		extends: ['js/recommended'],
 		languageOptions: {
 			ecmaVersion: 'latest',
@@ -17,6 +23,7 @@ export default defineConfig([
 				game: 'readonly',
 				ui: 'readonly',
 				canvas: 'readonly',
+				ChatMessage: 'readonly',
 				CONFIG: 'readonly',
 				CONST: 'readonly',
 				Hooks: 'readonly',
@@ -42,8 +49,27 @@ export default defineConfig([
 			},
 		},
 		rules: {
-			// keep this: it’s what helps shrink your destructuring over time
-			'no-unused-vars': ['warn', { vars: 'all', args: 'after-used' }],
+			// Strip unused imports outright; warn (don't fail) on unused vars so
+			// destructuring can be shrunk over time. `_`-prefixed names are ignored.
+			'no-unused-vars': 'off',
+			'unused-imports/no-unused-imports': 'error',
+			'unused-imports/no-unused-vars': [
+				'warn',
+				{ vars: 'all', varsIgnorePattern: '^_', args: 'after-used', argsIgnorePattern: '^_' },
+			],
+
+			// Loose backstop above Prettier's 120 printWidth; ignores lines Prettier can't break.
+			'max-len': [
+				'error',
+				{
+					code: 160,
+					ignoreComments: true,
+					ignoreStrings: true,
+					ignoreTemplateLiterals: true,
+					ignoreRegExpLiterals: true,
+					ignoreUrls: true,
+				},
+			],
 		},
 	},
 ]);

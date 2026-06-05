@@ -1,7 +1,6 @@
 foundry
-README.old.md
 .gitignore
 /scripts/debug
 WARP.md
 CLAUDE.md
-package-lock.json
+node_modules/
