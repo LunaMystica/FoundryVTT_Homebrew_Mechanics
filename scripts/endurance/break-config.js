@@ -13,7 +13,7 @@ export class EnduranceBreakConfig extends HandlebarsApplicationMixin(Application
 	};
 
 	static PARTS = {
-		form: { template: 'modules/xeno-homebrew-mechanics/templates/endurance-break-config.hbs' },
+		form: { template: 'modules/xeno-homebrew-mechanics/scripts/endurance/break-config.hbs' },
 	};
 
 	async _prepareContext() {

@@ -16,4 +16,6 @@ const feats = {
 
 const base = 'Item';
 
-export const damageTypeFeatures = Object.fromEntries(Object.entries(feats).map(([type, id]) => [type.toLowerCase(), `${base}.${id}`]));
+export const damageTypeFeatures = Object.fromEntries(
+	Object.entries(feats).map(([type, id]) => [type.toLowerCase(), `${base}.${id}`]),
+);

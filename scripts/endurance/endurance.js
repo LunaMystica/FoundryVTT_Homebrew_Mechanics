@@ -1,9 +1,9 @@
 // prettier-ignore
 const { utils: { activityUtils, effectUtils, genericUtils, workflowUtils } } = chrisPremades;
-import { endurance_broken_effect } from '../../constants/index.js';
-import { dev } from './dev.js';
-import { chatLog } from './chatLog.js';
-import { isSoul } from './soul.js';
+import { endurance_broken_effect } from './effects.js';
+import { dev } from '../core/dev.js';
+import { chatLog } from '../core/chat-log.js';
+import { isSoul } from '../soul/soul.js';
 
 class Endurance {
 	#chatMessages = [];

@@ -1,12 +1,11 @@
-import { endurance, soul, meters, meterColors, dev, chatLog } from './lib/utils.js';
-import { EnduranceBreakConfig } from './apps/enduranceBreakConfig.js';
-import { damageTypeFeatures } from '../constants/index.js';
+import { endurance, soul, meters, meterColors, dev, chatLog } from './index.js';
+import { EnduranceBreakConfig } from './endurance/break-config.js';
+import { damageTypeFeatures } from './endurance/damage-type-features.js';
 
 // prettier-ignore
 const { utils: { genericUtils } } = chrisPremades;
 
 // ── Settings Registration ──────────────────────────────────────────────────────
-
 Hooks.once('init', () => {
 	game.settings.registerMenu('xeno-homebrew-mechanics', 'endurance-damage-items-menu', {
 		name: 'Endurance Break Items',

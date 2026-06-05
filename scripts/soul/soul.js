@@ -1,7 +1,7 @@
 // prettier-ignore
 const { utils: { genericUtils } } = chrisPremades;
 
-import { dev } from './dev.js';
+import { dev } from '../core/dev.js';
 
 class Soul {
 	// ── Helpers ────────────────────────────────────────────────────────────────
@@ -120,7 +120,12 @@ class Soul {
 
 		const isAoe = !!workflow.templateUuid;
 		const increment = isAoe ? workflow.hitTargets.size * 3 : 4;
-		dev.debugLog('math', isAoe ? `AoE: ${workflow.hitTargets.size} hit × 3 = +${increment} charges` : `Attack: flat +${increment} charges`);
+		dev.debugLog(
+			'math',
+			isAoe
+				? `AoE: ${workflow.hitTargets.size} hit × 3 = +${increment} charges`
+				: `Attack: flat +${increment} charges`,
+		);
 
 		const { initialSpent, newSpent, actualGain } = Soul.computeSpentAfterGain(sourceItem, increment);
 
@@ -165,7 +170,10 @@ class Soul {
 			return [];
 		}
 
-		dev.debugLog('info', `Damage list: ${workflow.damageList.length} entr${workflow.damageList.length === 1 ? 'y' : 'ies'}`);
+		dev.debugLog(
+			'info',
+			`Damage list: ${workflow.damageList.length} entr${workflow.damageList.length === 1 ? 'y' : 'ies'}`,
+		);
 
 		// ── Resolve all actors in parallel ────────────────────────────────────
 		const validTargets = (
@@ -214,7 +222,10 @@ class Soul {
 		if (!targetItem) return;
 
 		const increment = Math.floor((damageValue * 3) / 2.5);
-		dev.debugLog('info', `${targetActor.name}: ${Soul.usesDisplay(targetItem)} | ${damageValue} damage → +${increment} charges`);
+		dev.debugLog(
+			'info',
+			`${targetActor.name}: ${Soul.usesDisplay(targetItem)} | ${damageValue} damage → +${increment} charges`,
+		);
 		const { initialSpent, newSpent, actualGain } = Soul.computeSpentAfterGain(targetItem, increment);
 
 		if (actualGain === 0) {
@@ -225,7 +236,10 @@ class Soul {
 		const displayBefore = Soul.usesDisplay(targetItem);
 		const displayAfter = `${targetItem.system.uses.max - newSpent}/${targetItem.system.uses.max}`;
 		await genericUtils.update(targetItem, { 'system.uses.spent': newSpent });
-		dev.debugLog('success', `${targetActor.name}: +${actualGain} from ${damageValue} damage | ${displayBefore} → ${displayAfter}`);
+		dev.debugLog(
+			'success',
+			`${targetActor.name}: +${actualGain} from ${damageValue} damage | ${displayBefore} → ${displayAfter}`,
+		);
 
 		lines.push(
 			`<div class="hbm-row" data-actor-uuid="${targetActor.uuid}"><span class="hbm-name">${targetActor.name}</span><span class="hbm-resource">${Soul.usesDisplay(targetItem)}</span><span class="hbm-delta hbm-delta--gain">+${actualGain}</span><span class="hbm-type">taken</span></div>`,

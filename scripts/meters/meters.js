@@ -1,7 +1,7 @@
 // prettier-ignore
 const { utils: { genericUtils } } = chrisPremades;
 
-import { dev } from './dev.js';
+import { dev } from '../core/dev.js';
 
 /**
  * The meters rendered on the Tidy5e character sheet.
