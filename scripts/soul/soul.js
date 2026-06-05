@@ -127,7 +127,7 @@ class Soul {
 				: `Attack: flat +${increment} charges`,
 		);
 
-		const { initialSpent, newSpent, actualGain } = Soul.computeSpentAfterGain(sourceItem, increment);
+		const { newSpent, actualGain } = Soul.computeSpentAfterGain(sourceItem, increment);
 
 		if (actualGain === 0) {
 			dev.debugLog('info', `${actor.name}: already at full Soul`);
@@ -226,7 +226,7 @@ class Soul {
 			'info',
 			`${targetActor.name}: ${Soul.usesDisplay(targetItem)} | ${damageValue} damage → +${increment} charges`,
 		);
-		const { initialSpent, newSpent, actualGain } = Soul.computeSpentAfterGain(targetItem, increment);
+		const { newSpent, actualGain } = Soul.computeSpentAfterGain(targetItem, increment);
 
 		if (actualGain === 0) {
 			dev.debugLog('info', `${targetActor.name}: already at full Soul`);
@@ -236,7 +236,7 @@ class Soul {
 		const displayBefore = Soul.usesDisplay(targetItem);
 		const displayAfter = `${targetItem.system.uses.max - newSpent}/${targetItem.system.uses.max}`;
 		await genericUtils.update(targetItem, { 'system.uses.spent': newSpent });
-		dev.debugLog(
+		dev.debugLog( 
 			'success',
 			`${targetActor.name}: +${actualGain} from ${damageValue} damage | ${displayBefore} → ${displayAfter}`,
 		);
