@@ -304,14 +304,14 @@ Hooks.on('midi-qol.postActiveEffects', async (workflow) => {
 
 // ── Long Rest Reset ────────────────────────────────────────────────────────────
 
-Hooks.on('dnd5e.longRest', async (actor) => {
-	if (!game.user.isGM) return;
-	if (!game.settings.get('xeno-homebrew-mechanics', 'soul-toggle')) return;
+// Hooks.on('dnd5e.longRest', async (actor) => {
+// 	if (!game.user.isGM) return;
+// 	if (!game.settings.get('xeno-homebrew-mechanics', 'soul-toggle')) return;
 
-	dev.debugGroupStart(`Long Rest — Soul Reset: ${actor.name}`);
-	await soul.resetSoul(actor);
-	dev.debugGroupEnd();
-});
+// 	dev.debugGroupStart(`Long Rest — Soul Reset: ${actor.name}`);
+// 	await soul.resetSoul(actor);
+// 	dev.debugGroupEnd();
+// });
 
 // ── Combat End Reset ───────────────────────────────────────────────────────────
 
