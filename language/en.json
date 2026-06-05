@@ -1,3 +1,69 @@
 {
-	"MODULE.hello": "Hello World"
+	"XHM": {
+		"Settings": {
+			"EnduranceToggle": {
+				"Name": "Endurance Toggle",
+				"Hint": "Toggles the automation of the Endurance system."
+			},
+			"SoulToggle": {
+				"Name": "Soul Toggle",
+				"Hint": "Toggles the automation of the Soul system."
+			},
+			"Debug": {
+				"Name": "Debug",
+				"Hint": "Toggles debug mode."
+			},
+			"ChatMessages": {
+				"Name": "Toggle Chat Messages",
+				"Hint": "Toggles messages in chat for Soul and Endurance."
+			},
+			"Meters": {
+				"Name": "Toggle Sheet Meters",
+				"Hint": "Shows the Endurance and Soul meters on Tidy5e character sheets."
+			},
+			"HideMessages": {
+				"Name": "Hide Messages Toggle",
+				"Hint": "When on, non-GM players only see chat rows for actors they own. Empty sections and entire messages collapse automatically."
+			},
+			"SoulItemBlacklist": {
+				"Name": "Soul Item Blacklist",
+				"Hint": "Comma-separated list of item names that should not generate Soul."
+			},
+			"SoulSectionBlacklist": {
+				"Name": "Soul Section Blacklist",
+				"Hint": "Comma-separated list of Tidy5e sections that should not generate Soul."
+			},
+			"ForceReload": {
+				"Name": "Force Reload",
+				"Hint": "Triggers a reload of the game."
+			},
+			"MeterColor": {
+				"Name": "{label} Meter Color",
+				"Hint": "Override the {label} meter colour. Leave blank to use the Tidy theme default."
+			}
+		},
+		"Menu": {
+			"EnduranceBreakItems": {
+				"Name": "Endurance Break Items",
+				"Label": "Configure",
+				"Hint": "Configure which item UUID fires the synthetic damage roll for each damage type when Endurance breaks."
+			}
+		},
+		"BreakConfig": {
+			"Title": "Endurance Break Items",
+			"Hint": "Map each damage type to the item UUID used for synthetic rolls when Endurance breaks. Leave blank to skip that damage type.",
+			"DamageType": "Damage Type",
+			"ItemUuid": "Item UUID",
+			"Placeholder": "Item.xxxxx or Compendium.pack.id.Item.xxxxx",
+			"Save": "Save Changes"
+		},
+		"Chat": {
+			"Soul": "Soul",
+			"Endurance": "Endurance",
+			"Attack": "attack",
+			"Taken": "taken",
+			"Broken": "broken",
+			"ForceBroken": "force broken"
+		}
+	}
 }

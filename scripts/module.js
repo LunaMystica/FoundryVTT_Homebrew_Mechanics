@@ -8,9 +8,9 @@ const { utils: { genericUtils } } = chrisPremades;
 // ── Settings Registration ──────────────────────────────────────────────────────
 Hooks.once('init', () => {
 	game.settings.registerMenu('xeno-homebrew-mechanics', 'endurance-damage-items-menu', {
-		name: 'Endurance Break Items',
-		label: 'Configure',
-		hint: 'Configure which item UUID fires the synthetic damage roll for each damage type when Endurance breaks.',
+		name: 'XHM.Menu.EnduranceBreakItems.Name',
+		label: 'XHM.Menu.EnduranceBreakItems.Label',
+		hint: 'XHM.Menu.EnduranceBreakItems.Hint',
 		icon: 'fas fa-bolt',
 		type: EnduranceBreakConfig,
 		restricted: true,
@@ -26,64 +26,64 @@ Hooks.once('init', () => {
 	const settings = [
 		{
 			key: 'endurance-toggle',
-			name: 'Endurance Toggle',
-			hint: 'Toggles the automation of the Endurance system.',
+			name: 'XHM.Settings.EnduranceToggle.Name',
+			hint: 'XHM.Settings.EnduranceToggle.Hint',
 			type: Boolean,
 			default: true,
 		},
 		{
 			key: 'soul-toggle',
-			name: 'Soul Toggle',
-			hint: 'Toggles the automation of the Soul system.',
+			name: 'XHM.Settings.SoulToggle.Name',
+			hint: 'XHM.Settings.SoulToggle.Hint',
 			type: Boolean,
 			default: true,
 		},
 		{
 			key: 'debug-toggle',
-			name: 'Debug',
-			hint: 'Toggles debug mode.',
+			name: 'XHM.Settings.Debug.Name',
+			hint: 'XHM.Settings.Debug.Hint',
 			type: Boolean,
 			default: false,
 		},
 		{
 			key: 'chat-message-toggle',
-			name: 'Toggle Chat Messages',
-			hint: 'Toggles messages in chat for Soul and Endurance.',
+			name: 'XHM.Settings.ChatMessages.Name',
+			hint: 'XHM.Settings.ChatMessages.Hint',
 			type: Boolean,
 			default: false,
 		},
 		{
 			key: 'meters-toggle',
-			name: 'Toggle Sheet Meters',
-			hint: 'Shows the Endurance and Soul meters on Tidy5e character sheets.',
+			name: 'XHM.Settings.Meters.Name',
+			hint: 'XHM.Settings.Meters.Hint',
 			type: Boolean,
 			default: true,
 		},
 		{
 			key: 'hide-messages-toggle',
-			name: 'Hide Messages Toggle',
-			hint: 'When on, non-GM players only see chat rows for actors they own. Empty sections and entire messages collapse automatically.',
+			name: 'XHM.Settings.HideMessages.Name',
+			hint: 'XHM.Settings.HideMessages.Hint',
 			type: Boolean,
 			default: false,
 		},
 		{
 			key: 'soul-item-blacklist',
-			name: 'Soul Item Blacklist',
-			hint: 'Comma-separated list of item names that should not generate Soul.',
+			name: 'XHM.Settings.SoulItemBlacklist.Name',
+			hint: 'XHM.Settings.SoulItemBlacklist.Hint',
 			type: String,
 			default: 'Blessed Healer,Flames of Madness',
 		},
 		{
 			key: 'soul-section-blacklist',
-			name: 'Soul Section Blacklist',
-			hint: 'Comma-separated list of Tidy5e sections that should not generate Soul.',
+			name: 'XHM.Settings.SoulSectionBlacklist.Name',
+			hint: 'XHM.Settings.SoulSectionBlacklist.Hint',
 			type: String,
 			default: 'Soulburst,Weakness Break',
 		},
 		{
 			key: 'force-reload',
-			name: 'Force Reload',
-			hint: 'Triggers a reload of the game.',
+			name: 'XHM.Settings.ForceReload.Name',
+			hint: 'XHM.Settings.ForceReload.Hint',
 			type: Boolean,
 			default: false,
 			requiresReload: true,
@@ -99,11 +99,19 @@ Hooks.once('init', () => {
 		});
 	}
 
+	console.log('xeno-homebrew-mechanics | Loaded');
+});
+
+// ── Per-Meter Colour Settings ──────────────────────────────────────────────────
+// Registered on i18nInit (not init) because their names are formatted eagerly with
+// `game.i18n.format`, and translations are only loaded after the `init` hook fires.
+
+Hooks.once('i18nInit', () => {
 	// Per-meter colour overrides (blank = Tidy theme default). Re-apply live on change.
 	for (const { key, label } of meterColors) {
 		game.settings.register('xeno-homebrew-mechanics', `meter-color-${key}`, {
-			name: `${label} Meter Color`,
-			hint: `Override the ${label} meter colour. Leave blank to use the Tidy theme default.`,
+			name: game.i18n.format('XHM.Settings.MeterColor.Name', { label }),
+			hint: game.i18n.format('XHM.Settings.MeterColor.Hint', { label }),
 			scope: 'world',
 			config: true,
 			type: String,
@@ -111,8 +119,6 @@ Hooks.once('init', () => {
 			onChange: () => meters.applyColors(),
 		});
 	}
-
-	console.log('xeno-homebrew-mechanics | Loaded');
 });
 
 // ── Global API ─────────────────────────────────────────────────────────────────

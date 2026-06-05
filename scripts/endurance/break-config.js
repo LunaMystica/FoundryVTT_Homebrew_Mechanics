@@ -9,7 +9,7 @@ export class EnduranceBreakConfig extends HandlebarsApplicationMixin(Application
 			closeOnSubmit: true,
 		},
 		position: { width: 560, height: 520 },
-		window: { title: 'Endurance Break Items' },
+		window: { title: 'XHM.BreakConfig.Title' },
 	};
 
 	static PARTS = {

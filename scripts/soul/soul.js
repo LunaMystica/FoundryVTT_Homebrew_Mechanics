@@ -85,7 +85,7 @@ class Soul {
 
 		const allLines = [...(attackerLine ? [attackerLine] : []), ...targetLines];
 		if (allLines.length === 0) return null;
-		return `<div class="hbm-section-header hbm-section-header--soul">Soul</div>${allLines.join('')}`;
+		return `<div class="hbm-section-header hbm-section-header--soul">${game.i18n.localize('XHM.Chat.Soul')}</div>${allLines.join('')}`;
 	}
 
 	// ── Attacker Gain ──────────────────────────────────────────────────────────
@@ -141,7 +141,7 @@ class Soul {
 		dev.debugLog('success', `${actor.name}: +${actualGain} | ${displayBefore} → ${displayAfter}`);
 
 		dev.debugGroupEnd();
-		return `<div class="hbm-row" data-actor-uuid="${actor.uuid}"><span class="hbm-name">${actor.name}</span><span class="hbm-resource">${Soul.usesDisplay(sourceItem)}</span><span class="hbm-delta hbm-delta--gain">+${actualGain}</span><span class="hbm-type">attack</span></div>`;
+		return `<div class="hbm-row" data-actor-uuid="${actor.uuid}"><span class="hbm-name">${actor.name}</span><span class="hbm-resource">${Soul.usesDisplay(sourceItem)}</span><span class="hbm-delta hbm-delta--gain">+${actualGain}</span><span class="hbm-type">${game.i18n.localize('XHM.Chat.Attack')}</span></div>`;
 	}
 
 	// ── Target Gain ────────────────────────────────────────────────────────────
@@ -242,7 +242,7 @@ class Soul {
 		);
 
 		lines.push(
-			`<div class="hbm-row" data-actor-uuid="${targetActor.uuid}"><span class="hbm-name">${targetActor.name}</span><span class="hbm-resource">${Soul.usesDisplay(targetItem)}</span><span class="hbm-delta hbm-delta--gain">+${actualGain}</span><span class="hbm-type">taken</span></div>`,
+			`<div class="hbm-row" data-actor-uuid="${targetActor.uuid}"><span class="hbm-name">${targetActor.name}</span><span class="hbm-resource">${Soul.usesDisplay(targetItem)}</span><span class="hbm-delta hbm-delta--gain">+${actualGain}</span><span class="hbm-type">${game.i18n.localize('XHM.Chat.Taken')}</span></div>`,
 		);
 	}
 

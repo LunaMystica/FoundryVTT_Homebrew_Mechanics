@@ -1,14 +1,11 @@
 <div class='standard-form endurance-break-config'>
 	<div class='ebc-scroll'>
-		<p class='hint'>
-			Map each damage type to the item UUID used for synthetic rolls when Endurance breaks. Leave blank to skip
-			that damage type.
-		</p>
+		<p class='hint'>{{localize 'XHM.BreakConfig.Hint'}}</p>
 		<table>
 			<thead>
 				<tr>
-					<th>Damage Type</th>
-					<th>Item UUID</th>
+					<th>{{localize 'XHM.BreakConfig.DamageType'}}</th>
+					<th>{{localize 'XHM.BreakConfig.ItemUuid'}}</th>
 				</tr>
 			</thead>
 			<tbody>
@@ -21,7 +18,7 @@
 								type='text'
 								name='{{key}}'
 								value='{{uuid}}'
-								placeholder='Item.xxxxx or Compendium.pack.id.Item.xxxxx'
+								placeholder='{{localize "XHM.BreakConfig.Placeholder"}}'
 							/>
 						</td>
 					</tr>
@@ -32,7 +29,7 @@
 	<footer class='flexrow'>
 		<button type='submit' name='submit'>
 			<i class='fas fa-save'></i>
-			Save Changes
+			{{localize 'XHM.BreakConfig.Save'}}
 		</button>
 	</footer>
 </div>

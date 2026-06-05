@@ -185,7 +185,7 @@ class Endurance {
 
 		const sectionHtml =
 			this.#chatMessages.length > 0
-				? `<div class="hbm-section-header hbm-section-header--endurance">Endurance</div>${this.#chatMessages.join('')}`
+				? `<div class="hbm-section-header hbm-section-header--endurance">${game.i18n.localize('XHM.Chat.Endurance')}</div>${this.#chatMessages.join('')}`
 				: null;
 
 		if (brokenTargets.length > 0) {
@@ -241,7 +241,7 @@ class Endurance {
 			}),
 		]);
 
-		const message = `<div class="hbm-card"><div class="hbm-section-header hbm-section-header--endurance">Endurance</div><div class="hbm-row" data-actor-uuid="${actor.uuid}"><span class="hbm-name">${actor.name}</span><span class="hbm-resource">0/${enduranceItem.system.uses.max}</span><span class="hbm-type">${damageType}</span><span class="hbm-broken">force broken</span></div></div>`;
+		const message = `<div class="hbm-card"><div class="hbm-section-header hbm-section-header--endurance">${game.i18n.localize('XHM.Chat.Endurance')}</div><div class="hbm-row" data-actor-uuid="${actor.uuid}"><span class="hbm-name">${actor.name}</span><span class="hbm-resource">0/${enduranceItem.system.uses.max}</span><span class="hbm-type">${damageType}</span><span class="hbm-broken">${game.i18n.localize('XHM.Chat.ForceBroken')}</span></div></div>`;
 		await chatLog.send(message);
 
 		dev.debugGroupEnd();
@@ -320,7 +320,7 @@ class Endurance {
 			await this._applyBreak(targetActor, enduranceItem, damageType, null);
 		}
 
-		const brokenBadge = broken ? ' <span class="hbm-broken">broken</span>' : '';
+		const brokenBadge = broken ? ` <span class="hbm-broken">${game.i18n.localize('XHM.Chat.Broken')}</span>` : '';
 		this.#chatMessages.push(
 			`<div class="hbm-row" data-actor-uuid="${targetActor.uuid}"><span class="hbm-name">${targetActor.name}</span><span class="hbm-resource">${Endurance.usesDisplay(enduranceItem)}</span><span class="hbm-delta hbm-delta--loss">−${actualReduction}</span><span class="hbm-type">${damageType}</span>${brokenBadge}</div>`,
 		);
