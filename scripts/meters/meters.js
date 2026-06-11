@@ -286,7 +286,7 @@ class Meters {
 					<span class="hbm-bar__name">${name}</span>
 					<span class="hbm-bar__nums"><span class="value">${value}</span><span class="separator">/</span><span class="max">${max}</span></span>
 				</${tag}>
-				${editable ? `<input class="hbm-bar__input" type="number" min="0" max="${max}" value="${value}" aria-label="${name}" hidden />` : ''}
+				${editable ? `<input class="hbm-bar__input" type="text" inputmode="numeric" value="${value}" aria-label="${name}" hidden />` : ''}
 			</div>`;
 	}
 
@@ -300,7 +300,7 @@ class Meters {
 		const pct = max ? Math.round((value / max) * 100) : 0;
 		const critical = criticalPct != null && value <= max * criticalPct;
 		const input = editable
-			? `<input class="hbm-meter__input" type="number" min="0" max="${max}" value="${value}" aria-label="${name}" />`
+			? `<input class="hbm-meter__input" type="text" inputmode="numeric" value="${value}" aria-label="${name}" />`
 			: `<span class="hbm-meter__value">${value}</span>`;
 
 		return `
@@ -382,7 +382,8 @@ class Meters {
 
 	/**
 	 * Quadrone bar: click the bar to reveal an inline input (mirrors the native HP
-	 * field), commit on blur/Enter, cancel on Escape.
+	 * field), commit on blur/Enter, cancel on Escape. The input accepts delta-typed
+	 * values (`+5`, `-5`, `=12`) via `_parseDelta`, like dnd5e's native fields.
 	 */
 	_wireQuadrone(el, item, max) {
 		const label = el.querySelector('.hbm-bar__label');
@@ -398,7 +399,9 @@ class Meters {
 		input.addEventListener('blur', () => {
 			label.hidden = false;
 			input.hidden = true;
-			this._setValue(item, max, parseInt(input.value, 10) || 0);
+			const value = this._parseDelta(input.value, item.system.uses.value);
+			input.value = item.system.uses.value; // reset stale delta text on a no-op
+			this._setValue(item, max, value);
 		});
 		input.addEventListener('keydown', (ev) => {
 			if (ev.key === 'Enter') input.blur();
@@ -410,15 +413,19 @@ class Meters {
 	}
 
 	/**
-	 * Classic bar: number input sets the value; left-click the track spends 1,
+	 * Classic bar: the input sets the value and accepts delta-typed entries
+	 * (`+5`, `-5`, `=12`) via `_parseDelta`; left-click the track spends 1,
 	 * right-click restores 1.
 	 */
 	_wireClassic(el, item, max) {
 		const setValue = (value) => this._setValue(item, max, value);
 
-		el.querySelector('.hbm-meter__input')?.addEventListener('change', (ev) =>
-			setValue(parseInt(ev.currentTarget.value, 10) || 0),
-		);
+		el.querySelector('.hbm-meter__input')?.addEventListener('change', (ev) => {
+			const input = ev.currentTarget;
+			const value = this._parseDelta(input.value, item.system.uses.value);
+			input.value = Math.clamp(value, 0, max); // reflect the resolved value (and reset stale delta text)
+			setValue(value);
+		});
 
 		const track = el.querySelector('.hbm-meter__track');
 		track?.addEventListener('click', () => setValue(item.system.uses.value - 1));
@@ -426,6 +433,25 @@ class Meters {
 			ev.preventDefault();
 			setValue(item.system.uses.value + 1);
 		});
+	}
+
+	/**
+	 * Resolves a delta-typed bar input against the current value, mirroring dnd5e's
+	 * native HP / uses fields: a leading `+`/`-` adjusts relative to the current
+	 * value, a leading `=` sets explicitly, and a bare number sets absolutely.
+	 * Blank or unparseable input leaves the value unchanged.
+	 *
+	 * @param {string} raw - The raw input string.
+	 * @param {number} current - The meter's current value.
+	 * @returns {number} The resolved (unclamped) value; `_setValue` clamps it.
+	 */
+	_parseDelta(raw, current) {
+		raw = (raw ?? '').trim();
+		if (!raw) return current;
+		let value = Number(raw);
+		if (raw[0] === '+' || raw[0] === '-') value = current + parseFloat(raw);
+		else if (raw[0] === '=') value = Number(raw.slice(1));
+		return Number.isNaN(value) ? current : value;
 	}
 
 	/**
