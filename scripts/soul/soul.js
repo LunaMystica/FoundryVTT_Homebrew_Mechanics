@@ -119,12 +119,13 @@ class Soul {
 		}
 
 		const isAoe = !!workflow.templateUuid;
-		const increment = isAoe ? workflow.hitTargets.size * 3 : 4;
+		const attackTargets = workflow.damageList?.filter((t) => t.isHit).length || 1;
+		const increment = isAoe ? workflow.hitTargets.size * 3 : attackTargets * 4;
 		dev.debugLog(
 			'math',
 			isAoe
 				? `AoE: ${workflow.hitTargets.size} hit × 3 = +${increment} charges`
-				: `Attack: flat +${increment} charges`,
+				: `Attack: ${attackTargets} target × 4 = +${increment} charges`,
 		);
 
 		const { newSpent, actualGain } = Soul.computeSpentAfterGain(sourceItem, increment);
