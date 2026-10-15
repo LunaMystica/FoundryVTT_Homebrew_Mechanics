@@ -13,6 +13,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Meter bar inputs accept relative and absolute entries (`+5`, `-5`, `=12`), like dnd5e's HP fields.
 - `Soul Long Rest Reset` world setting (off by default) to restore Soul to full on a long rest.
 - Foundry hot reload for CSS, Handlebars and JSON files during development.
+- **Combat tracker Endurance**: a bar under each combatant's name, with value and weakness icons (more than two collapse into "+N"; all are listed on hover). The GM and players with Observer+ permission see everything; for everyone else, the `Combat Tracker Endurance Visibility` setting picks full, bar only, or hidden.
+- **Endurance & Soul Values** settings menu: configure Endurance lost per weapon / cantrip / spell / Soulstrike / Soulburst / Weakness Break / feat / other hit and the crit bonus, plus Soul gained per attack target, per AoE target and per HP of damage taken.
+- **Homebrew Overrides** (GM, item sheet header menu): per-item Endurance damage and Soul-per-target overrides, plus two toggles: **Ignore weaknesses** (any hit reduces Endurance unless the target resists or is immune to all of its damage types) and, on top of that, **Also bypass resistance & immunity**.
+- **Reload Everyone** button in the module settings (replaces the `Force Reload` checkbox): reloads every connected client in one click. Also available as an assignable keybinding and as `xenoHomebrewMechanics.reloadEveryone()` for macros.
+- Module settings are grouped into submenus: Endurance Break Effects, Soul Rules, Combat Tracker and Chat Cards. The master toggles and meter colours stay on the main page.
+- **Undo** button (GM) on Homebrew Mechanics chat cards: reverts that card's Endurance/Soul changes, removes the broken effects it applied, reverts the break damage roll (HP, its chat card and any effects it applied) and restores hit tracking. After an undo, **Apply** re-applies everything. The original attack's HP damage is not reverted.
+- **Break effects**: floating "BREAK!" text, a sound and a short screen shake when Endurance breaks (broadcast via Sequencer), plus an optional animation file. Each is configurable.
 
 ### Changed
 
@@ -28,6 +35,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Actor names are HTML-escaped in chat cards.
 - The Endurance broken effect no longer errors on removal if the actor has no Endurance item.
 - Debug console groups no longer stay open after damage-less activities.
+- Missed attacks (including spell attacks) no longer reduce Endurance.
+- Meter colour pickers now appear in the settings window on Foundry v13.
 
 ## [1.3.1] - 2026-06-04
 
