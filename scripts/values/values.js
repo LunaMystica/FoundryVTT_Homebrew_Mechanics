@@ -33,6 +33,12 @@ export const OVERRIDE_KEYS = Object.freeze({
 	soulGainPerTarget: 'soulGainPerTarget',
 });
 
+/** Item flag keys for per-item Endurance toggles. `bypassResistance` only applies with `ignoreWeakness`. */
+export const TOGGLE_KEYS = Object.freeze({
+	ignoreWeakness: 'ignoreWeakness',
+	bypassResistance: 'bypassResistance',
+});
+
 /**
  * Merges a stored settings object over its defaults, dropping anything that
  * isn't a finite, non-negative number so a bad save can't break the maths.
@@ -108,6 +114,20 @@ export function getSoulGainPerTarget(item, isAoe) {
 	if (override !== null) return override;
 	const values = getSoulValues();
 	return isAoe ? values.aoePerTarget : values.attackPerTarget;
+}
+
+/**
+ * How an item's hits decide whether Endurance is reduced:
+ * - `weakness` (default): only damage matching a weakness.
+ * - `ignoreWeakness`: any damage, unless the target resists or is immune to it.
+ * - `bypass`: any damage, regardless of resistance or immunity.
+ * @param {Item} item
+ * @returns {'weakness'|'ignoreWeakness'|'bypass'}
+ */
+export function getEnduranceMode(item) {
+	const flags = item?.flags?.[MODULE_ID] ?? {};
+	if (!flags[TOGGLE_KEYS.ignoreWeakness]) return 'weakness';
+	return flags[TOGGLE_KEYS.bypassResistance] ? 'bypass' : 'ignoreWeakness';
 }
 
 /**

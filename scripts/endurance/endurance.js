@@ -6,7 +6,7 @@ import { chatLog } from '../core/chat-log.js';
 import { isSoul } from '../soul/soul.js';
 import { mapSerialPerKey } from '../core/async-utils.js';
 import { escapeHtml } from '../core/html.js';
-import { getEnduranceReduction } from '../values/values.js';
+import { getEnduranceMode, getEnduranceReduction } from '../values/values.js';
 
 class Endurance {
 	#chatMessages = [];
@@ -26,6 +26,31 @@ class Endurance {
 	 */
 	static getEnduranceReduction(item, isCritical = false) {
 		return getEnduranceReduction(item, isCritical);
+	}
+
+	/**
+	 * Picks the damage roll that drives Endurance for this target, or null if none qualifies.
+	 * A roll matching a weakness always wins. Otherwise, depending on the item's mode:
+	 * `ignoreWeakness` takes the first roll the target doesn't resist / isn't immune to;
+	 * `bypass` takes the first damage roll regardless.
+	 *
+	 * @param {Roll[]} damageRolls
+	 * @param {Actor} actor
+	 * @param {'weakness'|'ignoreWeakness'|'bypass'} mode
+	 * @returns {Roll|null}
+	 */
+	static pickDamageRoll(damageRolls, actor, mode) {
+		const traits = actor.system.traits ?? {};
+		const damageTypes = CONFIG.DND5E?.damageTypes ?? {};
+		const rolls = (damageRolls ?? []).filter((roll) => roll.options?.type in damageTypes);
+		const weaknesses = new Set(traits.dv?.value ?? []);
+
+		const weak = rolls.find((roll) => weaknesses.has(roll.options.type));
+		if (weak || mode === 'weakness') return weak ?? null;
+		if (mode === 'bypass') return rolls[0] ?? null;
+
+		const blocked = new Set([...(traits.dr?.value ?? []), ...(traits.di?.value ?? [])]);
+		return rolls.find((roll) => !blocked.has(roll.options.type)) ?? null;
 	}
 
 	static groupByDamageType(brokenTargets) {
@@ -271,14 +296,15 @@ class Endurance {
 			return null;
 		}
 
+		const mode = getEnduranceMode(workflow.item);
 		const weaknesses = new Set(targetActor.system.traits.dv.value);
-		if (weaknesses.size === 0) {
+		if (weaknesses.size === 0 && mode === 'weakness') {
 			dev.debugLog('info', `${targetActor.name} has no weaknesses — skipping`);
 			dev.debugGroupEnd();
 			return null;
 		}
 
-		dev.debugLog('info', `Weaknesses: [${Array.from(weaknesses).join(', ')}]`);
+		dev.debugLog('info', `Weaknesses: [${Array.from(weaknesses).join(', ')}] | mode: ${mode}`);
 
 		if (enduranceItem.system.uses.spent >= enduranceItem.system.uses.max) {
 			dev.debugLog('info', `${targetActor.name}: already broken — skipping`);
@@ -288,9 +314,10 @@ class Endurance {
 
 		dev.debugLog('info', `Current endurance: ${Endurance.usesDisplay(enduranceItem)}`);
 
-		const matchedRoll = workflow.damageRolls.find((roll) => weaknesses.has(roll.options.type));
+		const matchedRoll = Endurance.pickDamageRoll(workflow.damageRolls, targetActor, mode);
 		if (!matchedRoll) {
-			dev.debugLog('info', `${targetActor.name}: no weakness matched — skipping`);
+			const reason = mode === 'weakness' ? 'no weakness matched' : 'all damage resisted or immune';
+			dev.debugLog('info', `${targetActor.name}: ${reason} — skipping`);
 			dev.debugGroupEnd();
 			return null;
 		}
