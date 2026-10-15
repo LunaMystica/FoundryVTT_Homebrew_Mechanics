@@ -281,7 +281,10 @@ Hooks.on('midi-qol.postActiveEffects', async (workflow) => {
 		);
 	}
 
-	if (!workflow.damageList?.length) return;
+	if (!workflow.damageList?.length) {
+		dev.debugGroupEnd();
+		return;
+	}
 
 	dev.debugWorkflow(workflow);
 	dev.debugDamageList(workflow.damageList);
