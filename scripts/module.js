@@ -143,7 +143,9 @@ Hooks.once('tidy5e-sheet.ready', (api) => {
 });
 
 // Add a native colour picker beside each meter-colour setting (blank = default).
-Hooks.on('renderSettingsConfig', (app, [form]) => {
+// v13 passes an HTMLElement, v12 a jQuery object.
+Hooks.on('renderSettingsConfig', (app, html) => {
+	const form = html instanceof HTMLElement ? html : html[0];
 	for (const { key, fallback } of meterColors) {
 		const input = form.querySelector(`input[name="xeno-homebrew-mechanics.meter-color-${key}"]`);
 		if (!input || input.dataset.hbmPicker) continue;
