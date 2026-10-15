@@ -166,8 +166,8 @@
 				"Hint": "Reduce Endurance on any hit, not just weakness hits, unless the target resists or is immune to every damage type of the hit."
 			},
 			"bypassResistance": {
-				"Name": "Also bypass resistance & immunity",
-				"Hint": "Requires \"Ignore weaknesses\". Reduce Endurance on any hit, even through resistance or immunity."
+				"Name": "Ignore Restrictions",
+				"Hint": "Requires \"Ignore weaknesses\". Also ignore resistance and immunity: any hit reduces Endurance."
 			}
 		},
 		"Undo": {

@@ -559,8 +559,10 @@
 
 /* ── Item Overrides Dialog ──────────────────────────────────────────────────── */
 
-.form-group.xhm-override-sub {
-	margin-left: 1.25rem;
+/* Checkbox rows: the checkbox only needs its own width, so the label gets the rest
+   (core gives fields 2/3 of the row, which wrapped long toggle labels). */
+.form-group.xhm-override-toggle > .form-fields {
+	flex: none;
 }
 
 .form-group.xhm-override-sub.disabled {

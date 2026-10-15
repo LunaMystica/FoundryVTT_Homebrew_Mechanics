@@ -32,7 +32,7 @@ function numberField(name, value, fallback, hintData) {
 function toggleField(name, checked, indent = false) {
 	const label = game.i18n.localize(`XHM.Overrides.${name}.Name`);
 	const hint = game.i18n.localize(`XHM.Overrides.${name}.Hint`);
-	return `<div class="form-group${indent ? ' xhm-override-sub' : ''}">
+	return `<div class="form-group xhm-override-toggle${indent ? ' xhm-override-sub' : ''}">
 		<label for="xhm-override-${name}">${escapeHtml(label)}</label>
 		<div class="form-fields">
 			<input id="xhm-override-${name}" type="checkbox" name="${name}" ${checked ? 'checked' : ''}>
