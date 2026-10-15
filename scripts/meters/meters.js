@@ -211,7 +211,7 @@ class Meters {
 		const units = this._buildUnits(present);
 		container.innerHTML = units.map((u) => this._renderUnit(u, layout, editable)).join('');
 
-		if (editable) this._wireInteraction(actor, container, layout);
+		if (editable) this._wireInteraction(actor, container);
 	}
 
 	/**
@@ -353,9 +353,8 @@ class Meters {
 	 *
 	 * @param {Actor} actor
 	 * @param {HTMLElement} container
-	 * @param {'classic'|'quadrone'} layout
 	 */
-	_wireInteraction(actor, container, layout) {
+	_wireInteraction(actor, container) {
 		for (const el of container.querySelectorAll('.hbm-bar, .hbm-meter, .hbm-charges')) {
 			const item = actor.items.get(el.dataset.itemId);
 			if (!item) continue;
