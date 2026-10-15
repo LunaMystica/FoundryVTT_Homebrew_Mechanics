@@ -11,6 +11,7 @@ export const endurance_broken_effect = {
 			onDelete: {
 				script: `
           const enduranceItem = actor.items.getName("Endurance");
+          if (!enduranceItem) return;
           await chrisPremades.utils.genericUtils.update(enduranceItem, {'system.uses.spent': 0});
         `.trim(),
 			},
