@@ -4,6 +4,7 @@ const { utils: { genericUtils } } = chrisPremades;
 import { dev } from '../core/dev.js';
 import { mapSerialPerKey } from '../core/async-utils.js';
 import { escapeHtml } from '../core/html.js';
+import { getSoulGainPerTarget, getSoulValues } from '../values/values.js';
 
 class Soul {
 	// ── Helpers ────────────────────────────────────────────────────────────────
@@ -93,7 +94,8 @@ class Soul {
 	// ── Attacker Gain ──────────────────────────────────────────────────────────
 
 	/**
-	 * Grants Soul charges to the attacker: flat 4 for attacks, 3 per target for AoE.
+	 * Grants Soul charges to the attacker per hit target (attack / AoE amounts
+	 * from the values menu, or the item's override).
 	 * Skipped if the attacker has no Soul item, or if blacklisted.
 	 * Returns a formatted message line, or null if skipped.
 	 *
@@ -121,14 +123,10 @@ class Soul {
 		}
 
 		const isAoe = !!workflow.templateUuid;
-		const attackTargets = workflow.damageList?.filter((t) => t.isHit).length || 1;
-		const increment = isAoe ? workflow.hitTargets.size * 3 : attackTargets * 4;
-		dev.debugLog(
-			'math',
-			isAoe
-				? `AoE: ${workflow.hitTargets.size} hit × 3 = +${increment} charges`
-				: `Attack: ${attackTargets} target × 4 = +${increment} charges`,
-		);
+		const perTarget = getSoulGainPerTarget(workflow.item, isAoe);
+		const targets = isAoe ? workflow.hitTargets.size : workflow.damageList?.filter((t) => t.isHit).length || 1;
+		const increment = targets * perTarget;
+		dev.debugLog('math', `${isAoe ? 'AoE' : 'Attack'}: ${targets} hit × ${perTarget} = +${increment} charges`);
 
 		const { newSpent, actualGain } = Soul.computeSpentAfterGain(sourceItem, increment);
 
@@ -226,7 +224,8 @@ class Soul {
 		const targetItem = targetActor.items.getName('Soul');
 		if (!targetItem) return null;
 
-		const increment = Math.floor((damageValue * 3) / 2.5);
+		// Epsilon guards float error (e.g. 35 × 1.2 = 41.99999…) so whole results don't round down.
+		const increment = Math.floor(damageValue * getSoulValues().damageTakenRatio + 1e-9);
 		dev.debugLog(
 			'info',
 			`${targetActor.name}: ${Soul.usesDisplay(targetItem)} | ${damageValue} damage → +${increment} charges`,

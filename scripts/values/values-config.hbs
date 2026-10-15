@@ -1,0 +1,54 @@
+<div class='standard-form xhm-values-config'>
+	<p class='hint'>{{localize 'XHM.ValuesConfig.Hint'}}</p>
+
+	<fieldset>
+		<legend>{{localize 'XHM.ValuesConfig.EnduranceLegend'}}</legend>
+		{{#each endurance}}
+			<div class='form-group'>
+				<label for='xhm-{{name}}'>{{localize label}}</label>
+				<div class='form-fields'>
+					<input
+						id='xhm-{{name}}'
+						type='number'
+						name='{{name}}'
+						value='{{value}}'
+						min='0'
+						step='{{step}}'
+						placeholder='{{default}}'
+					/>
+				</div>
+			</div>
+		{{/each}}
+	</fieldset>
+
+	<fieldset>
+		<legend>{{localize 'XHM.ValuesConfig.SoulLegend'}}</legend>
+		{{#each soul}}
+			<div class='form-group'>
+				<label for='xhm-{{name}}'>{{localize label}}</label>
+				<div class='form-fields'>
+					<input
+						id='xhm-{{name}}'
+						type='number'
+						name='{{name}}'
+						value='{{value}}'
+						min='0'
+						step='{{step}}'
+						placeholder='{{default}}'
+					/>
+				</div>
+			</div>
+		{{/each}}
+	</fieldset>
+
+	<footer class='form-footer'>
+		<button type='button' data-action='resetDefaults'>
+			<i class='fas fa-undo'></i>
+			{{localize 'XHM.ValuesConfig.Reset'}}
+		</button>
+		<button type='submit' name='submit'>
+			<i class='fas fa-save'></i>
+			{{localize 'XHM.ValuesConfig.Save'}}
+		</button>
+	</footer>
+</div>

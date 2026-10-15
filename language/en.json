@@ -51,6 +51,11 @@
 				"Name": "Endurance Break Items",
 				"Label": "Configure",
 				"Hint": "Configure which item UUID fires the synthetic damage roll for each damage type when Endurance breaks."
+			},
+			"Values": {
+				"Name": "Endurance & Soul Values",
+				"Label": "Configure",
+				"Hint": "How much Endurance each kind of hit removes and how much Soul is gained. Individual items can override these from their sheet header menu (Homebrew Overrides)."
 			}
 		},
 		"BreakConfig": {
@@ -70,6 +75,44 @@
 			"ForceBroken": "force broken",
 			"PanToToken": "Pan to token",
 			"NoToken": "{name} has no token on the current scene."
+		},
+		"ValuesConfig": {
+			"Title": "Endurance & Soul Values",
+			"Hint": "Blank fields fall back to the default shown in grey. Item overrides (sheet header menu → Homebrew Overrides) take priority over these.",
+			"EnduranceLegend": "Endurance lost per weakness hit",
+			"SoulLegend": "Soul gained",
+			"Reset": "Reset to Defaults",
+			"Save": "Save Changes",
+			"endurance": {
+				"weapon": "Weapon",
+				"cantrip": "Cantrip",
+				"spell": "Spell (level 1+)",
+				"soulstrike": "Soulstrike feat",
+				"soulburst": "Soulburst feat",
+				"weaknessBreak": "Weakness Break feat",
+				"feat": "Other feat",
+				"other": "Anything else",
+				"critBonus": "Critical hit bonus"
+			},
+			"soul": {
+				"attackPerTarget": "Attacker, per hit target",
+				"aoePerTarget": "Attacker, per hit target (AoE)",
+				"damageTakenRatio": "Target, per HP damage taken"
+			}
+		},
+		"Overrides": {
+			"Control": "Homebrew Overrides",
+			"Title": "Homebrew Overrides: {name}",
+			"Hint": "Leave a field blank to use the world value from Endurance & Soul Values.",
+			"Save": "Save",
+			"enduranceReduction": {
+				"Name": "Endurance damage",
+				"Hint": "Endurance removed per weakness hit (crit bonus still applies; 0 = never). World value: {value}."
+			},
+			"soulGainPerTarget": {
+				"Name": "Soul gain per hit target",
+				"Hint": "Soul the attacker gains per target hit. World values: {attack} (attack), {aoe} (AoE)."
+			}
 		}
 	}
 }

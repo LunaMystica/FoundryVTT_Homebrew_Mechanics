@@ -425,3 +425,16 @@
 	overflow-y: auto;
 	min-height: 0;
 }
+
+/* ── Values Config ──────────────────────────────────────────────────────────── */
+
+#xhm-values-config .xhm-values-config {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+#xhm-values-config .form-group input[type='number'] {
+	max-width: 6rem;
+	text-align: right;
+}

@@ -1,12 +1,24 @@
 import { endurance, soul, meters, meterColors, dev, chatLog } from './index.js';
 import { EnduranceBreakConfig } from './endurance/break-config.js';
 import { damageTypeFeatures } from './endurance/damage-type-features.js';
+import { ValuesConfig } from './values/values-config.js';
+import { ENDURANCE_DEFAULTS, SOUL_DEFAULTS } from './values/values.js';
+import { registerItemOverrideControls } from './values/item-overrides.js';
 
 // prettier-ignore
 const { utils: { genericUtils } } = chrisPremades;
 
 // ── Settings Registration ──────────────────────────────────────────────────────
 Hooks.once('init', () => {
+	game.settings.registerMenu('xeno-homebrew-mechanics', 'values-menu', {
+		name: 'XHM.Menu.Values.Name',
+		label: 'XHM.Menu.Values.Label',
+		hint: 'XHM.Menu.Values.Hint',
+		icon: 'fas fa-sliders',
+		type: ValuesConfig,
+		restricted: true,
+	});
+
 	game.settings.registerMenu('xeno-homebrew-mechanics', 'endurance-damage-items-menu', {
 		name: 'XHM.Menu.EnduranceBreakItems.Name',
 		label: 'XHM.Menu.EnduranceBreakItems.Label',
@@ -22,6 +34,18 @@ Hooks.once('init', () => {
 		type: Object,
 		default: damageTypeFeatures,
 	});
+
+	for (const [key, defaults] of [
+		['endurance-values', ENDURANCE_DEFAULTS],
+		['soul-values', SOUL_DEFAULTS],
+	]) {
+		game.settings.register('xeno-homebrew-mechanics', key, {
+			scope: 'world',
+			config: false,
+			type: Object,
+			default: { ...defaults },
+		});
+	}
 
 	const settings = [
 		{
@@ -105,6 +129,8 @@ Hooks.once('init', () => {
 			requiresReload: requiresReload ?? false,
 		});
 	}
+
+	registerItemOverrideControls();
 
 	console.log('xeno-homebrew-mechanics | Loaded');
 });

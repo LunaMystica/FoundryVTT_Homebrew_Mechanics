@@ -6,6 +6,7 @@ import { chatLog } from '../core/chat-log.js';
 import { isSoul } from '../soul/soul.js';
 import { mapSerialPerKey } from '../core/async-utils.js';
 import { escapeHtml } from '../core/html.js';
+import { getEnduranceReduction } from '../values/values.js';
 
 class Endurance {
 	#chatMessages = [];
@@ -16,39 +17,15 @@ class Endurance {
 		return `${item.system.uses.value}/${item.system.uses.max}`;
 	}
 
+	/**
+	 * Endurance lost when `item` hits a weakness. Values come from the
+	 * **Endurance & Soul Values** menu, or the item's override flag.
+	 * @param {Item} item
+	 * @param {boolean} [isCritical=false]
+	 * @returns {number}
+	 */
 	static getEnduranceReduction(item, isCritical = false) {
-		let base;
-		switch (item.type) {
-			case 'weapon':
-				base = 1;
-				break;
-
-			case 'spell':
-				base = item.system.level === 0 ? 2 : 3;
-				break;
-
-			case 'feat': {
-				const section = item.flags?.['tidy5e-sheet']?.section ?? null;
-				if (section === 'Soulstrike') {
-					base = 3;
-					break;
-				}
-				if (section === 'Soulburst') {
-					base = 6;
-					break;
-				}
-				if (section === 'Weakness Break') {
-					base = 0;
-					break;
-				}
-				base = 3;
-				break;
-			}
-
-			default:
-				base = 1;
-		}
-		return base === 0 ? 0 : base + (isCritical ? 1 : 0);
+		return getEnduranceReduction(item, isCritical);
 	}
 
 	static groupByDamageType(brokenTargets) {
@@ -285,7 +262,7 @@ class Endurance {
 		const reduction = Endurance.getEnduranceReduction(workflow.item, isCritical);
 		dev.debugLog(
 			'info',
-			`reduction: ${reduction} from "${workflow.item.name}" (${workflow.item.type})${isCritical ? ' [crit +1]' : ''}`,
+			`reduction: ${reduction} from "${workflow.item.name}" (${workflow.item.type})${isCritical ? ' [crit]' : ''}`,
 		);
 
 		if (reduction === 0) {
