@@ -153,6 +153,13 @@ class Endurance {
 					return null;
 				}
 
+				// midi lists missed targets too (isHit false), sometimes with damage still
+				// calculated (e.g. damage-on-miss); only hits wear down Endurance.
+				if (target.isHit === false || target.wasHit === false) {
+					dev.debugLog('info', `Skip ${name()} — missed`);
+					return null;
+				}
+
 				const tookDamage = (target.hpDamage ?? 0) > 0 || (target.appliedDamage ?? 0) > 0;
 				if (!tookDamage) {
 					dev.debugLog('info', `Skip ${name()} — took no damage`);
