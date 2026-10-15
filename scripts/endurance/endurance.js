@@ -6,6 +6,7 @@ import { chatLog } from '../core/chat-log.js';
 import { isSoul } from '../soul/soul.js';
 import { mapSerialPerKey } from '../core/async-utils.js';
 import { escapeHtml } from '../core/html.js';
+import { UndoRecorder } from '../core/undo.js';
 import { getEnduranceMode, getEnduranceReduction } from '../values/values.js';
 import { playBreakFx } from './break-fx.js';
 
@@ -91,8 +92,9 @@ class Endurance {
 	 *
 	 * @param {Object[]} damageList - The list of damage targets from the workflow.
 	 * @param {Workflow} workflow - The MidiQOL workflow that triggered the hit.
+	 * @param {UndoRecorder|null} [undo] - Collects changes for the chat card's Undo button.
 	 */
-	async checkEndurance(damageList, workflow) {
+	async checkEndurance(damageList, workflow, undo = null) {
 		this.#chatMessages = [];
 
 		dev.debugGroupStart(
@@ -114,6 +116,7 @@ class Endurance {
 					const tokenDoc = token.document ?? token;
 
 					const lastHit = tokenDoc.getFlag('xeno-homebrew-mechanics', 'lastHit');
+					undo?.recordFlag(tokenDoc, 'lastHit', lastHit);
 					if (
 						lastHit?.itemUuid === workflow.item.uuid &&
 						lastHit?.activityUuid === workflow.activity.uuid &&
@@ -188,7 +191,7 @@ class Endurance {
 			({ actor }) => actor.uuid,
 			({ actor, enduranceItem, target }) => {
 				dev.debugLog('info', `Processing ${actor.name} (${target.hpDamage} HP damage)`);
-				return this._updateEndurance(actor, enduranceItem, target, workflow);
+				return this._updateEndurance(actor, enduranceItem, target, workflow, undo);
 			},
 		);
 
@@ -210,7 +213,7 @@ class Endurance {
 				: null;
 
 		if (brokenTargets.length > 0) {
-			await this._processBrokenTargets(brokenTargets, workflow);
+			await this._processBrokenTargets(brokenTargets, workflow, undo);
 		} else {
 			dev.debugLog('info', 'No broken targets — done');
 		}
@@ -255,15 +258,21 @@ class Endurance {
 		}
 
 		// ── Break endurance and fire damage roll in parallel ───────────────────
+		const undo = new UndoRecorder();
 		await Promise.all([
-			this._applyBreak(actor, enduranceItem, targetToken),
-			this._fireSyntheticRoll(damageType, damageAmount, sourceActor, [targetToken], {
-				ignoreTraits: ['idr', 'idv', 'idi', 'idm', 'ida'],
-			}),
+			this._applyBreak(actor, enduranceItem, targetToken, undo),
+			this._fireSyntheticRoll(
+				damageType,
+				damageAmount,
+				sourceActor,
+				[targetToken],
+				{ ignoreTraits: ['idr', 'idv', 'idi', 'idm', 'ida'] },
+				undo,
+			),
 		]);
 
 		const message = `<div class="hbm-card"><div class="hbm-section-header hbm-section-header--endurance">${game.i18n.localize('XHM.Chat.Endurance')}</div><div class="hbm-row" data-actor-uuid="${actor.uuid}"><span class="hbm-name">${escapeHtml(actor.name)}</span><span class="hbm-resource">0/${enduranceItem.system.uses.max}</span><span class="hbm-type">${damageType}</span><span class="hbm-broken">${game.i18n.localize('XHM.Chat.ForceBroken')}</span></div></div>`;
-		await chatLog.send(message);
+		await chatLog.send(message, { undo });
 
 		dev.debugGroupEnd();
 	}
@@ -278,10 +287,11 @@ class Endurance {
 	 * @param {Item} enduranceItem - Pre-resolved endurance item for the actor.
 	 * @param {Object} target - The damage target entry from the workflow.
 	 * @param {Workflow} workflow
+	 * @param {UndoRecorder|null} [undo]
 	 * @returns {Promise<{ line: string, broken: { target: Token, damageType: string } | null } | null>}
 	 *   The chat-row line plus any break info, or null if the target was skipped.
 	 */
-	async _updateEndurance(targetActor, enduranceItem, target, workflow) {
+	async _updateEndurance(targetActor, enduranceItem, target, workflow, undo = null) {
 		dev.debugGroupStart(`Update — ${targetActor.name}`);
 
 		const isCritical = workflow.isCritical ?? false;
@@ -340,6 +350,7 @@ class Endurance {
 		dev.debugGroupEnd();
 
 		await genericUtils.update(enduranceItem, { 'system.uses.spent': newSpent });
+		undo?.recordItem(enduranceItem, initialSpent, newSpent);
 		dev.debugLog('success', `${targetActor.name}: endurance updated to ${displayAfter}`);
 
 		let brokenInfo = null;
@@ -347,7 +358,7 @@ class Endurance {
 			const targetTokenDocument = fromUuidSync(target.targetUuid);
 			const targetToken = canvas.tokens.get(targetTokenDocument.id);
 			brokenInfo = { target: targetToken, damageType };
-			await this._applyBreak(targetActor, enduranceItem, targetToken);
+			await this._applyBreak(targetActor, enduranceItem, targetToken, undo);
 		}
 
 		const brokenBadge = broken ? ` <span class="hbm-broken">${game.i18n.localize('XHM.Chat.Broken')}</span>` : '';
@@ -365,12 +376,17 @@ class Endurance {
 	 * @param {Actor} actor
 	 * @param {Item} enduranceItem
 	 * @param {Token|null} token - The token to play the break FX on.
+	 * @param {UndoRecorder|null} [undo]
 	 */
-	async _applyBreak(actor, enduranceItem, token) {
-		await Promise.all([
-			genericUtils.update(enduranceItem, { 'system.uses.spent': enduranceItem.system.uses.max }),
+	async _applyBreak(actor, enduranceItem, token, undo = null) {
+		const spentBefore = enduranceItem.system.uses.spent;
+		const max = enduranceItem.system.uses.max;
+		const [, effect] = await Promise.all([
+			genericUtils.update(enduranceItem, { 'system.uses.spent': max }),
 			effectUtils.createEffect(actor, endurance_broken_effect),
 		]);
+		undo?.recordItem(enduranceItem, spentBefore, max);
+		undo?.recordEffect(effect);
 		dev.debugLog('success', `${actor.name}: broken effect applied`);
 		playBreakFx(token);
 	}
@@ -384,8 +400,10 @@ class Endurance {
 	 * @param {number} damageAmount
 	 * @param {Actor} sourceActor
 	 * @param {Token[]} targetTokens
+	 * @param {{ ignoreTraits?: string[] }} [options]
+	 * @param {UndoRecorder|null} [undo] - Captures the roll's HP damage, effects and chat card.
 	 */
-	async _fireSyntheticRoll(damageType, damageAmount, sourceActor, targetTokens, options = {}) {
+	async _fireSyntheticRoll(damageType, damageAmount, sourceActor, targetTokens, options = {}, undo = null) {
 		dev.debugGroupStart(`Synthetic Roll — ${damageType}`);
 
 		const damageItems = game.settings.get('xeno-homebrew-mechanics', 'endurance-damage-items');
@@ -417,7 +435,19 @@ class Endurance {
 			activityData.midiProperties ??= {};
 			activityData.midiProperties.ignoreTraits = options.ignoreTraits;
 		}
-		await workflowUtils.syntheticActivityDataRoll(activityData, sourceItem, sourceActor, targetTokens);
+		const targetActors = [...new Set(targetTokens.map((t) => t?.actor).filter(Boolean))];
+		const stopCapture = undo?.capture(
+			targetActors,
+			(message) =>
+				message.speaker?.actor === sourceActor.id &&
+				(message.flags?.dnd5e?.item?.id === sourceItem.id ||
+					message.flags?.dnd5e?.activity?.id === activityData._id),
+		);
+		try {
+			await workflowUtils.syntheticActivityDataRoll(activityData, sourceItem, sourceActor, targetTokens);
+		} finally {
+			stopCapture?.();
+		}
 		dev.debugLog(
 			'success',
 			`${damageAmount} ${damageType} → ${targetTokens.length} target${targetTokens.length !== 1 ? 's' : ''} via "${sourceItem.name}"`,
@@ -445,12 +475,12 @@ class Endurance {
 
 	// ── Broken Target Processing ───────────────────────────────────────────────
 
-	async _processBrokenTargets(brokenTargets, workflow) {
+	async _processBrokenTargets(brokenTargets, workflow, undo = null) {
 		const grouped = Endurance.groupByDamageType(brokenTargets);
 
 		for (const [damageType, targets] of Object.entries(grouped)) {
 			const totalDamage = Endurance.totalDamageForType(workflow.damageRolls, damageType);
-			await this._fireSyntheticRoll(damageType, totalDamage, workflow.actor, targets);
+			await this._fireSyntheticRoll(damageType, totalDamage, workflow.actor, targets, {}, undo);
 		}
 	}
 

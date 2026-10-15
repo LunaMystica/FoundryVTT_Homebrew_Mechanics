@@ -10,6 +10,7 @@ export const endurance_broken_effect = {
 		effectmacro: {
 			onDelete: {
 				script: `
+          if (effect.flags?.["xeno-homebrew-mechanics"]?.undoing) return;
           const enduranceItem = actor.items.getName("Endurance");
           if (!enduranceItem) return;
           await chrisPremades.utils.genericUtils.update(enduranceItem, {'system.uses.spent': 0});

@@ -149,6 +149,17 @@
 				"Hint": "Requires \"Ignore weaknesses\". Reduce Endurance on any hit, even through resistance or immunity."
 			}
 		},
+		"Undo": {
+			"Button": "Undo",
+			"Tooltip": "Revert this card: Endurance/Soul changes, broken effects, the break damage roll (HP, its chat card and any effects it applied) and hit tracking. The original attack's HP damage is not reverted.",
+			"Reverted": "Reverted",
+			"Done": "Homebrew Mechanics: changes reverted.",
+			"Failed": "Homebrew Mechanics: undo failed, see the console.",
+			"Apply": "Apply",
+			"ApplyTooltip": "Re-apply the changes from this card (in case the undo was an accident).",
+			"Applied": "Homebrew Mechanics: changes re-applied.",
+			"Partial": "Homebrew Mechanics: done, but {count} step(s) were skipped (usually something another module had already removed). See the console."
+		},
 		"Tracker": {
 			"Endurance": "Endurance",
 			"Weaknesses": "Weak to",

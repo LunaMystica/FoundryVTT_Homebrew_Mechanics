@@ -20,15 +20,18 @@ class ChatLog {
 	 * @param {object} [options]
 	 * @param {boolean} [options.publicChat=true] - Broadcast to all players. Set false to whisper GM.
 	 * @param {string} [options.speaker='HBM'] - Speaker alias shown in chat.
+	 * @param {import('./undo.js').UndoRecorder|null} [options.undo] - Recorded changes; adds a GM Undo button.
 	 * @returns {Promise<void>}
 	 */
-	async send(content, { publicChat = true, speaker = 'HBM' } = {}) {
+	async send(content, { publicChat = true, speaker = 'HBM', undo = null } = {}) {
 		if (!game.settings.get('xeno-homebrew-mechanics', 'chat-message-toggle')) return;
 
+		const undoFlag = undo?.toFlag();
 		const chatData = {
 			content: ChatLog.cleanContent(content),
 			speaker: { alias: speaker },
 			...(!publicChat && { whisper: ChatMessage.getWhisperRecipients('GM') }),
+			...(undoFlag && { flags: { 'xeno-homebrew-mechanics': { undo: undoFlag } } }),
 		};
 
 		await ChatMessage.create(chatData);

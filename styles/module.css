@@ -439,6 +439,33 @@
 	text-align: right;
 }
 
+/* ── Chat Card Undo ─────────────────────────────────────────────────────────── */
+
+.hbm-undo {
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 6px;
+	margin-top: 4px;
+	padding-top: 4px;
+	border-top: 1px dashed #cbd5e0;
+}
+
+.hbm-undo__button {
+	flex: none;
+	width: auto;
+	min-height: 0;
+	padding: 1px 8px;
+	font-size: 0.75rem;
+	line-height: 1.4;
+}
+
+.hbm-undo__done {
+	color: #718096;
+	font-size: 0.75rem;
+	font-style: italic;
+}
+
 /* ── Combat Tracker Endurance ───────────────────────────────────────────────── */
 
 .hbm-tracker {

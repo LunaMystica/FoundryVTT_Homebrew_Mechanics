@@ -55,9 +55,10 @@ class Soul {
 	 * Returns an HTML section string, or null if nothing happened.
 	 *
 	 * @param {Workflow} workflow
+	 * @param {import('../core/undo.js').UndoRecorder|null} [undo] - Collects changes for the Undo button.
 	 * @returns {Promise<string|null>}
 	 */
-	async calculateSoul(workflow) {
+	async calculateSoul(workflow, undo = null) {
 		dev.debugGroupStart('Soul');
 		dev.debugLog('info', `Triggered by ${workflow.actor.name} using "${workflow.item.name}"`);
 
@@ -81,8 +82,8 @@ class Soul {
 			`"${itemName}" (${itemSection ?? 'no section'}) — ${workflow.hitTargets.size} hit | blacklist: item=${itemBlacklisted} section=${sectionBlacklisted}`,
 		);
 
-		const attackerLine = await this._processAttackerGain(workflow, itemBlacklisted, sectionBlacklisted);
-		const targetLines = await this._processTargetGain(workflow, sectionBlacklisted);
+		const attackerLine = await this._processAttackerGain(workflow, itemBlacklisted, sectionBlacklisted, undo);
+		const targetLines = await this._processTargetGain(workflow, sectionBlacklisted, undo);
 
 		dev.debugGroupEnd();
 
@@ -102,9 +103,10 @@ class Soul {
 	 * @param {Workflow} workflow
 	 * @param {boolean} itemBlacklisted
 	 * @param {boolean} sectionBlacklisted
+	 * @param {import('../core/undo.js').UndoRecorder|null} [undo]
 	 * @returns {Promise<string|null>}
 	 */
-	async _processAttackerGain(workflow, itemBlacklisted, sectionBlacklisted) {
+	async _processAttackerGain(workflow, itemBlacklisted, sectionBlacklisted, undo = null) {
 		dev.debugGroupStart('Attacker Gain');
 
 		const actor = workflow.actor;
@@ -128,7 +130,7 @@ class Soul {
 		const increment = targets * perTarget;
 		dev.debugLog('math', `${isAoe ? 'AoE' : 'Attack'}: ${targets} hit × ${perTarget} = +${increment} charges`);
 
-		const { newSpent, actualGain } = Soul.computeSpentAfterGain(sourceItem, increment);
+		const { initialSpent, newSpent, actualGain } = Soul.computeSpentAfterGain(sourceItem, increment);
 
 		if (actualGain === 0) {
 			dev.debugLog('info', `${actor.name}: already at full Soul`);
@@ -139,6 +141,7 @@ class Soul {
 		const displayBefore = Soul.usesDisplay(sourceItem);
 		const displayAfter = `${sourceItem.system.uses.max - newSpent}/${sourceItem.system.uses.max}`;
 		await genericUtils.update(sourceItem, { 'system.uses.spent': newSpent });
+		undo?.recordItem(sourceItem, initialSpent, newSpent);
 		dev.debugLog('success', `${actor.name}: +${actualGain} | ${displayBefore} → ${displayAfter}`);
 
 		dev.debugGroupEnd();
@@ -155,9 +158,11 @@ class Soul {
 	 * Returns an array of formatted message lines.
 	 *
 	 * @param {Workflow} workflow
+	 * @param {boolean} sectionBlacklisted
+	 * @param {import('../core/undo.js').UndoRecorder|null} [undo]
 	 * @returns {Promise<string[]>}
 	 */
-	async _processTargetGain(workflow, sectionBlacklisted) {
+	async _processTargetGain(workflow, sectionBlacklisted, undo = null) {
 		dev.debugGroupStart('Target Gain');
 
 		if (!workflow.damageList?.length) {
@@ -203,7 +208,7 @@ class Soul {
 			await mapSerialPerKey(
 				validTargets,
 				({ actor }) => actor.uuid,
-				({ actor, hpDamage }) => this._applyDamageTakenGain(actor, hpDamage),
+				({ actor, hpDamage }) => this._applyDamageTakenGain(actor, hpDamage, undo),
 			)
 		).filter(Boolean);
 
@@ -218,9 +223,10 @@ class Soul {
 	 *
 	 * @param {Actor} targetActor
 	 * @param {number} damageValue
+	 * @param {import('../core/undo.js').UndoRecorder|null} [undo]
 	 * @returns {Promise<string|null>} The formatted message line, or null if skipped.
 	 */
-	async _applyDamageTakenGain(targetActor, damageValue) {
+	async _applyDamageTakenGain(targetActor, damageValue, undo = null) {
 		const targetItem = targetActor.items.getName('Soul');
 		if (!targetItem) return null;
 
@@ -230,7 +236,7 @@ class Soul {
 			'info',
 			`${targetActor.name}: ${Soul.usesDisplay(targetItem)} | ${damageValue} damage → +${increment} charges`,
 		);
-		const { newSpent, actualGain } = Soul.computeSpentAfterGain(targetItem, increment);
+		const { initialSpent, newSpent, actualGain } = Soul.computeSpentAfterGain(targetItem, increment);
 
 		if (actualGain === 0) {
 			dev.debugLog('info', `${targetActor.name}: already at full Soul`);
@@ -240,6 +246,7 @@ class Soul {
 		const displayBefore = Soul.usesDisplay(targetItem);
 		const displayAfter = `${targetItem.system.uses.max - newSpent}/${targetItem.system.uses.max}`;
 		await genericUtils.update(targetItem, { 'system.uses.spent': newSpent });
+		undo?.recordItem(targetItem, initialSpent, newSpent);
 		dev.debugLog(
 			'success',
 			`${targetActor.name}: +${actualGain} from ${damageValue} damage | ${displayBefore} → ${displayAfter}`,

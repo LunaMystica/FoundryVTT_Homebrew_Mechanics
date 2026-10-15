@@ -4,6 +4,7 @@ import { damageTypeFeatures } from './endurance/damage-type-features.js';
 import { ValuesConfig } from './values/values-config.js';
 import { ENDURANCE_DEFAULTS, SOUL_DEFAULTS } from './values/values.js';
 import { registerItemOverrideControls } from './values/item-overrides.js';
+import { UndoRecorder, registerRestoredMessageOrdering, renderUndoControl } from './core/undo.js';
 
 // prettier-ignore
 const { utils: { genericUtils } } = chrisPremades;
@@ -183,6 +184,7 @@ Hooks.once('init', () => {
 
 	tracker.register();
 	registerItemOverrideControls();
+	registerRestoredMessageOrdering();
 
 	console.log('xeno-homebrew-mechanics | Loaded');
 });
@@ -319,6 +321,8 @@ Hooks.on('renderChatMessage', (message, [html]) => {
 		name.title = game.i18n.localize('XHM.Chat.PanToToken');
 		name.addEventListener('click', () => panToActorToken(row.dataset.actorUuid));
 	}
+
+	renderUndoControl(message, html);
 });
 
 // ── MidiQOL Workflow ───────────────────────────────────────────────────────────
@@ -370,23 +374,24 @@ Hooks.on('midi-qol.postActiveEffects', async (workflow) => {
 	dev.debugDamageList(workflow.damageList);
 
 	const sections = [];
+	const undo = new UndoRecorder();
 
 	if (enduranceEnabled) {
-		const s = await endurance.checkEndurance(workflow.damageList, workflow);
+		const s = await endurance.checkEndurance(workflow.damageList, workflow, undo);
 		if (s) sections.push(s);
 	} else {
 		dev.debugLog('warning', 'Endurance processing disabled — skipping');
 	}
 
 	if (soulEnabled) {
-		const s = await soul.calculateSoul(workflow);
+		const s = await soul.calculateSoul(workflow, undo);
 		if (s) sections.push(s);
 	} else {
 		dev.debugLog('warning', 'Soul processing disabled — skipping');
 	}
 
 	if (sections.length > 0) {
-		await chatLog.send(`<div class="hbm-card">${sections.join('<hr class="hbm-divider">')}</div>`);
+		await chatLog.send(`<div class="hbm-card">${sections.join('<hr class="hbm-divider">')}</div>`, { undo });
 	}
 
 	dev.debugGroupEnd();
