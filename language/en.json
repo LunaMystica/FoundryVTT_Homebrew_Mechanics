@@ -9,6 +9,10 @@
 				"Name": "Soul Toggle",
 				"Hint": "Toggles the automation of the Soul system."
 			},
+			"SoulLongRest": {
+				"Name": "Soul Long Rest Reset",
+				"Hint": "When on, an actor's Soul resets to full when they take a long rest."
+			},
 			"Debug": {
 				"Name": "Debug",
 				"Hint": "Toggles debug mode."

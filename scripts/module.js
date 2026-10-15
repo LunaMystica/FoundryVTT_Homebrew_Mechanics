@@ -39,6 +39,13 @@ Hooks.once('init', () => {
 			default: true,
 		},
 		{
+			key: 'soul-long-rest-toggle',
+			name: 'XHM.Settings.SoulLongRest.Name',
+			hint: 'XHM.Settings.SoulLongRest.Hint',
+			type: Boolean,
+			default: false,
+		},
+		{
 			key: 'debug-toggle',
 			name: 'XHM.Settings.Debug.Name',
 			hint: 'XHM.Settings.Debug.Hint',
@@ -304,14 +311,15 @@ Hooks.on('midi-qol.postActiveEffects', async (workflow) => {
 
 // ── Long Rest Reset ────────────────────────────────────────────────────────────
 
-// Hooks.on('dnd5e.longRest', async (actor) => {
-// 	if (!game.user.isGM) return;
-// 	if (!game.settings.get('xeno-homebrew-mechanics', 'soul-toggle')) return;
+Hooks.on('dnd5e.longRest', async (actor) => {
+	if (!game.user.isGM) return;
+	if (!game.settings.get('xeno-homebrew-mechanics', 'soul-toggle')) return;
+	if (!game.settings.get('xeno-homebrew-mechanics', 'soul-long-rest-toggle')) return;
 
-// 	dev.debugGroupStart(`Long Rest — Soul Reset: ${actor.name}`);
-// 	await soul.resetSoul(actor);
-// 	dev.debugGroupEnd();
-// });
+	dev.debugGroupStart(`Long Rest — Soul Reset: ${actor.name}`);
+	await soul.resetSoul(actor);
+	dev.debugGroupEnd();
+});
 
 // ── Combat End Reset ───────────────────────────────────────────────────────────
 
