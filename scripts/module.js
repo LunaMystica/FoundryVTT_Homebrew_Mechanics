@@ -5,6 +5,30 @@ import { ValuesConfig } from './values/values-config.js';
 import { ENDURANCE_DEFAULTS, SOUL_DEFAULTS } from './values/values.js';
 import { registerItemOverrideControls } from './values/item-overrides.js';
 import { UndoRecorder, registerRestoredMessageOrdering, renderUndoControl } from './core/undo.js';
+import { createSettingsSubmenu } from './core/settings-menu.js';
+import { ReloadEveryoneMenu, reloadEveryone } from './core/reload.js';
+
+/**
+ * Settings grouped into their own submenus (registered with `config: false`, so
+ * they no longer crowd the main list). Order here = order in the settings window.
+ */
+const SUBMENUS = [
+	{
+		key: 'break-fx-menu',
+		i18n: 'BreakFx',
+		icon: 'fas fa-burst',
+		keys: ['break-fx-toggle', 'break-fx-sound', 'break-fx-file', 'break-fx-shake'],
+	},
+	{
+		key: 'soul-rules-menu',
+		i18n: 'SoulRules',
+		icon: 'fas fa-ghost',
+		keys: ['soul-long-rest-toggle', 'soul-item-blacklist', 'soul-section-blacklist'],
+	},
+	{ key: 'tracker-menu', i18n: 'Tracker', icon: 'fas fa-list-ol', keys: ['tracker-toggle', 'tracker-visibility'] },
+	{ key: 'chat-menu', i18n: 'Chat', icon: 'fas fa-comment', keys: ['chat-message-toggle', 'hide-messages-toggle'] },
+];
+const SUBMENU_KEYS = new Set(SUBMENUS.flatMap(({ keys }) => keys));
 
 // prettier-ignore
 const { utils: { genericUtils } } = chrisPremades;
@@ -28,6 +52,17 @@ Hooks.once('init', () => {
 		type: EnduranceBreakConfig,
 		restricted: true,
 	});
+
+	for (const { key, i18n, icon, keys } of SUBMENUS) {
+		game.settings.registerMenu('xeno-homebrew-mechanics', key, {
+			name: `XHM.Menu.${i18n}.Name`,
+			label: `XHM.Menu.${i18n}.Label`,
+			hint: `XHM.Menu.${i18n}.Hint`,
+			icon,
+			type: createSettingsSubmenu({ id: `xhm-${key}`, title: `XHM.Menu.${i18n}.Name`, keys }),
+			restricted: true,
+		});
+	}
 
 	game.settings.register('xeno-homebrew-mechanics', 'endurance-damage-items', {
 		scope: 'world',
@@ -163,24 +198,38 @@ Hooks.once('init', () => {
 			type: String,
 			default: 'Soulburst,Weakness Break',
 		},
-		{
-			key: 'force-reload',
-			name: 'XHM.Settings.ForceReload.Name',
-			hint: 'XHM.Settings.ForceReload.Hint',
-			type: Boolean,
-			default: false,
-			requiresReload: true,
-		},
 	];
 
 	for (const { key, requiresReload, ...config } of settings) {
 		game.settings.register('xeno-homebrew-mechanics', key, {
 			...config,
 			scope: 'world',
-			config: true,
+			config: !SUBMENU_KEYS.has(key),
 			requiresReload: requiresReload ?? false,
 		});
 	}
+
+	// One-click "reload every client" (replaces the old Force Reload checkbox).
+	game.settings.registerMenu('xeno-homebrew-mechanics', 'reload-everyone', {
+		name: 'XHM.Menu.Reload.Name',
+		label: 'XHM.Menu.Reload.Label',
+		hint: 'XHM.Menu.Reload.Hint',
+		icon: 'fas fa-arrows-rotate',
+		type: ReloadEveryoneMenu,
+		restricted: true,
+	});
+
+	// Unbound by default; assign a key under Configure Controls → Xeno Homebrew Mechanics.
+	game.keybindings.register('xeno-homebrew-mechanics', 'reload-everyone', {
+		name: 'XHM.Reload.Keybinding',
+		hint: 'XHM.Menu.Reload.Hint',
+		editable: [],
+		restricted: true,
+		onDown: () => {
+			reloadEveryone();
+			return true;
+		},
+	});
 
 	tracker.register();
 	registerItemOverrideControls();
@@ -211,7 +260,7 @@ Hooks.once('i18nInit', () => {
 // ── Global API ─────────────────────────────────────────────────────────────────
 
 Hooks.once('ready', () => {
-	globalThis['xenoHomebrewMechanics'] = { endurance, soul, meters, tracker, dev, chatLog };
+	globalThis['xenoHomebrewMechanics'] = { endurance, soul, meters, tracker, dev, chatLog, reloadEveryone };
 	meters.applyColors();
 	dev.debugLog('info', 'Global API registered on xenoHomebrewMechanics');
 });

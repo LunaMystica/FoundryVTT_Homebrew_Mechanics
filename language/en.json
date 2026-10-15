@@ -37,10 +37,6 @@
 				"Name": "Soul Section Blacklist",
 				"Hint": "Comma-separated list of Tidy5e sections that should not generate Soul."
 			},
-			"ForceReload": {
-				"Name": "Force Reload",
-				"Hint": "Triggers a reload of the game."
-			},
 			"MeterColor": {
 				"Name": "{label} Meter Color",
 				"Hint": "Override the {label} meter colour. Leave blank to use the Tidy theme default."
@@ -83,6 +79,31 @@
 				"Name": "Endurance & Soul Values",
 				"Label": "Configure",
 				"Hint": "How much Endurance each kind of hit removes and how much Soul is gained. Individual items can override these from their sheet header menu (Homebrew Overrides)."
+			},
+			"BreakFx": {
+				"Name": "Endurance Break Effects",
+				"Label": "Configure",
+				"Hint": "The floating \"BREAK!\" text, sound, animation and screen shake played when Endurance breaks."
+			},
+			"SoulRules": {
+				"Name": "Soul Rules",
+				"Label": "Configure",
+				"Hint": "Long-rest reset and the item / section blacklists that never generate Soul."
+			},
+			"Tracker": {
+				"Name": "Combat Tracker",
+				"Label": "Configure",
+				"Hint": "Endurance bars on the combat tracker and what players can see of them."
+			},
+			"Chat": {
+				"Name": "Chat Cards",
+				"Label": "Configure",
+				"Hint": "Whether Endurance/Soul results are posted to chat, and what players see of them."
+			},
+			"Reload": {
+				"Name": "Reload Everyone",
+				"Label": "Reload",
+				"Hint": "Reloads every connected client (players too), e.g. after updating the module. You can also bind a key to it under Configure Controls."
 			}
 		},
 		"BreakConfig": {
@@ -167,6 +188,15 @@
 		},
 		"BreakFx": {
 			"Text": "BREAK!"
+		},
+		"Submenu": {
+			"Save": "Save Changes"
+		},
+		"Reload": {
+			"Title": "Reload Everyone?",
+			"Body": "This reloads Foundry for every connected user, including you.",
+			"GMOnly": "Only the GM can reload everyone.",
+			"Keybinding": "Reload Everyone"
 		}
 	}
 }
