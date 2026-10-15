@@ -5,38 +5,45 @@ All notable changes to this module are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [2.0.0] - 2026-10-15
+
+### Upgrading from 1.x
+
+- **Soul long-rest reset is now opt-in.** Turn on _Soul Rules → Soul Long Rest Reset_ if you want Soul to refill on a long rest.
+- **Multi-target attacks grant the attacker 4 Soul per hit target** instead of a flat 4. All amounts are now configurable (see _Endurance & Soul Values_).
+- **Missed attacks no longer reduce Endurance**, including spell attacks.
+- **The `Force Reload` checkbox is gone**, replaced by a _Reload Everyone_ button.
+- Several settings moved into submenus. Existing values carry over unchanged.
+- Undo is only available on chat cards created with 2.0.0 or later, and needs _Chat Cards → Toggle Chat Messages_ turned on.
 
 ### Added
 
-- Click an actor's name in an HBM chat card to pan to (and select, if owned) their token on the current scene.
+- **Combat tracker Endurance**: a bar under each combatant's name with the current value and weakness icons (more than two collapse into "+N"; all are listed on hover). The GM and players with Observer permission or higher see everything; for everyone else, _Combat Tracker Endurance Visibility_ picks full, bar only, or hidden.
+- **Endurance & Soul Values** settings menu: Endurance lost per weapon, cantrip, spell, Soulstrike, Soulburst, Weakness Break, other feat and other hit, plus the crit bonus; Soul gained per attack target, per AoE target and per HP of damage taken. Defaults match 1.x.
+- **Homebrew Overrides** (GM, item sheet header menu ⋯): per-item Endurance damage and Soul-per-target overrides, plus two toggles:
+    - **Ignore weaknesses**: any hit reduces Endurance unless the target resists or is immune to every damage type of the hit.
+    - **Also bypass resistance & immunity** (needs the first toggle): any damaging hit reduces Endurance.
+- **Undo / Apply** (GM) on Homebrew Mechanics chat cards: Undo reverts that card's Endurance and Soul changes, removes the broken effects it applied, reverts the break damage roll (its HP damage, chat card and effects) and restores hit tracking. Apply re-applies everything. The original attack's own HP damage is not reverted (use midi-qol's undo for that).
+- **Break effects**: a floating "BREAK!" above the token, a sound and a short screen shake when Endurance breaks, plus an optional animation file. Broadcast to all players via Sequencer; each part can be turned off.
+- **Reload Everyone**: reloads every connected client in one click, from the module settings, an assignable keybinding, or `xenoHomebrewMechanics.reloadEveryone()` in a macro.
+- **Settings submenus**: Endurance Break Effects, Soul Rules, Combat Tracker and Chat Cards. The master toggles and meter colours stay on the main page.
+- Click an actor's name in a Homebrew Mechanics chat card to pan to (and select, if owned) their token.
 - Meter bar inputs accept relative and absolute entries (`+5`, `-5`, `=12`), like dnd5e's HP fields.
-- `Soul Long Rest Reset` world setting (off by default) to restore Soul to full on a long rest.
-- Foundry hot reload for CSS, Handlebars and JSON files during development.
-- **Combat tracker Endurance**: a bar under each combatant's name, with value and weakness icons (more than two collapse into "+N"; all are listed on hover). The GM and players with Observer+ permission see everything; for everyone else, the `Combat Tracker Endurance Visibility` setting picks full, bar only, or hidden.
-- **Endurance & Soul Values** settings menu: configure Endurance lost per weapon / cantrip / spell / Soulstrike / Soulburst / Weakness Break / feat / other hit and the crit bonus, plus Soul gained per attack target, per AoE target and per HP of damage taken.
-- **Homebrew Overrides** (GM, item sheet header menu): per-item Endurance damage and Soul-per-target overrides, plus two toggles: **Ignore weaknesses** (any hit reduces Endurance unless the target resists or is immune to all of its damage types) and, on top of that, **Also bypass resistance & immunity**.
-- **Reload Everyone** button in the module settings (replaces the `Force Reload` checkbox): reloads every connected client in one click. Also available as an assignable keybinding and as `xenoHomebrewMechanics.reloadEveryone()` for macros.
-- Module settings are grouped into submenus: Endurance Break Effects, Soul Rules, Combat Tracker and Chat Cards. The master toggles and meter colours stay on the main page.
-- **Undo** button (GM) on Homebrew Mechanics chat cards: reverts that card's Endurance/Soul changes, removes the broken effects it applied, reverts the break damage roll (HP, its chat card and any effects it applied) and restores hit tracking. After an undo, **Apply** re-applies everything. The original attack's HP damage is not reverted.
-- **Break effects**: floating "BREAK!" text, a sound and a short screen shake when Endurance breaks (broadcast via Sequencer), plus an optional animation file. Each is configurable.
 
 ### Changed
 
-- Multi-target attacks grant the attacker 4 Soul per hit target instead of a flat 4.
-- The Soul long-rest reset is now opt-in (it was disabled, then made a setting).
-- All user-facing strings moved to `language/en.json`.
 - Endurance and Soul process hit targets in parallel, so large AoEs resolve faster.
+- All user-facing text moved to `language/en.json`.
 - Verified on Foundry v13.
 
 ### Fixed
 
-- Two tokens of the same linked actor hit by one attack no longer race each other's Endurance/Soul updates (which could lose a reduction or apply the broken effect twice).
+- Missed attacks (including spell attacks) no longer reduce Endurance.
+- Two tokens of the same linked actor hit by one attack no longer race each other's updates (which could lose a reduction or apply the broken effect twice).
+- Meter colour pickers appear in the settings window on Foundry v13.
 - Actor names are HTML-escaped in chat cards.
 - The Endurance broken effect no longer errors on removal if the actor has no Endurance item.
 - Debug console groups no longer stay open after damage-less activities.
-- Missed attacks (including spell attacks) no longer reduce Endurance.
-- Meter colour pickers now appear in the settings window on Foundry v13.
 
 ## [1.3.1] - 2026-06-04
 
@@ -49,10 +56,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Tidy5e sheet meters for the homebrew resources, on both the classic and Quadrone layouts.
-  - **Endurance** and **Soul** render as bars (native-styled on Quadrone to match the HP / Hit Dice bars).
-  - **Soulstrike** (diamond pips) and **Soulburst** (stars) render as charge trackers, grouped with the Soul bar.
-  - Click a bar to edit its value; click a pip/star to set the count (click the top one again to spend).
-  - **Endurance** pulses a warning glow when critically low.
+    - **Endurance** and **Soul** render as bars (native-styled on Quadrone to match the HP / Hit Dice bars).
+    - **Soulstrike** (diamond pips) and **Soulburst** (stars) render as charge trackers, grouped with the Soul bar.
+    - Click a bar to edit its value; click a pip/star to set the count (click the top one again to spend).
+    - **Endurance** pulses a warning glow when critically low.
 - Per-meter colour configuration: world settings with colour pickers, defaulting to the Tidy theme palette and tinted per-actor with the sheet's accent colour (contrast-adjusted for light/dark themes).
 - `Toggle Sheet Meters` world setting to show/hide the meters.
 
@@ -202,6 +209,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Initial release.
 
+[2.0.0]: https://github.com/LunaMystica/FoundryVTT_Homebrew_Mechanics/compare/1.3.1...2.0.0
 [1.3.1]: https://github.com/LunaMystica/FoundryVTT_Homebrew_Mechanics/compare/1.3.0...1.3.1
 [1.3.0]: https://github.com/LunaMystica/FoundryVTT_Homebrew_Mechanics/compare/1.2.0...1.3.0
 [1.2.0]: https://github.com/LunaMystica/FoundryVTT_Homebrew_Mechanics/compare/1.1.1...1.2.0
