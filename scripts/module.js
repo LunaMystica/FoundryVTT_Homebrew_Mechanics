@@ -204,7 +204,7 @@ Hooks.on('renderChatMessage', (message, [html]) => {
  */
 async function panToActorToken(actorUuid) {
 	if (!canvas.ready) return;
-	const actor = await fromUuid(actorUuid);
+	const actor = fromUuidSync(actorUuid);
 	if (!actor) return;
 
 	const token = actor.token?.object ?? actor.getActiveTokens(false, false)[0];
