@@ -2,6 +2,7 @@
 const { utils: { genericUtils } } = chrisPremades;
 
 import { dev } from '../core/dev.js';
+import { mapSerialPerKey } from '../core/async-utils.js';
 
 class Soul {
 	// ── Helpers ────────────────────────────────────────────────────────────────
@@ -149,7 +150,8 @@ class Soul {
 
 	/**
 	 * Grants Soul charges to each target that took HP damage.
-	 * Resolves all actors in parallel, then processes sequentially.
+	 * Resolves all actors synchronously, then applies gains in parallel per actor
+	 * (tokens sharing one linked actor are applied in order so their updates don't race).
 	 * Targets without a Soul item are silently skipped.
 	 * Returns an array of formatted message lines.
 	 *
@@ -176,34 +178,35 @@ class Soul {
 			`Damage list: ${workflow.damageList.length} entr${workflow.damageList.length === 1 ? 'y' : 'ies'}`,
 		);
 
-		// ── Resolve all actors in parallel ────────────────────────────────────
-		const validTargets = (
-			await Promise.all(
-				workflow.damageList.map(async (target) => {
-					if (!target.isHit || target.hpDamage <= 0) {
-						const name = fromUuidSync(target.actorUuid)?.name ?? target.actorUuid;
-						dev.debugLog('info', `Skip ${name} — not hit or no HP damage`);
-						return null;
-					}
+		// ── Resolve all actors (world docs — synchronous) ─────────────────────
+		const validTargets = workflow.damageList
+			.map((target) => {
+				if (!target.isHit || target.hpDamage <= 0) {
+					const name = fromUuidSync(target.actorUuid)?.name ?? target.actorUuid;
+					dev.debugLog('info', `Skip ${name} — not hit or no HP damage`);
+					return null;
+				}
 
-					const actor = await fromUuid(target.actorUuid);
-					if (!actor) {
-						dev.debugLog('warning', `Could not resolve actor: ${target.actorUuid}`);
-						return null;
-					}
+				const actor = fromUuidSync(target.actorUuid);
+				if (!actor) {
+					dev.debugLog('warning', `Could not resolve actor: ${target.actorUuid}`);
+					return null;
+				}
 
-					return { actor, hpDamage: target.hpDamage };
-				}),
-			)
-		).filter(Boolean);
+				return { actor, hpDamage: target.hpDamage };
+			})
+			.filter(Boolean);
 
 		dev.debugLog('info', `${validTargets.length} valid target${validTargets.length !== 1 ? 's' : ''} to process`);
 
-		// ── Process sequentially (updates must be ordered) ────────────────────
-		const lines = [];
-		for (const { actor, hpDamage } of validTargets) {
-			await this._applyDamageTakenGain(actor, hpDamage, lines);
-		}
+		// ── Apply gains in parallel per actor; output keeps target order ──────
+		const lines = (
+			await mapSerialPerKey(
+				validTargets,
+				({ actor }) => actor.uuid,
+				({ actor, hpDamage }) => this._applyDamageTakenGain(actor, hpDamage),
+			)
+		).filter(Boolean);
 
 		dev.debugGroupEnd();
 		return lines;
@@ -216,11 +219,11 @@ class Soul {
 	 *
 	 * @param {Actor} targetActor
 	 * @param {number} damageValue
-	 * @param {string[]} lines - Mutated in place; caller collects for the batch message.
+	 * @returns {Promise<string|null>} The formatted message line, or null if skipped.
 	 */
-	async _applyDamageTakenGain(targetActor, damageValue, lines) {
+	async _applyDamageTakenGain(targetActor, damageValue) {
 		const targetItem = targetActor.items.getName('Soul');
-		if (!targetItem) return;
+		if (!targetItem) return null;
 
 		const increment = Math.floor((damageValue * 3) / 2.5);
 		dev.debugLog(
@@ -231,20 +234,18 @@ class Soul {
 
 		if (actualGain === 0) {
 			dev.debugLog('info', `${targetActor.name}: already at full Soul`);
-			return;
+			return null;
 		}
 
 		const displayBefore = Soul.usesDisplay(targetItem);
 		const displayAfter = `${targetItem.system.uses.max - newSpent}/${targetItem.system.uses.max}`;
 		await genericUtils.update(targetItem, { 'system.uses.spent': newSpent });
-		dev.debugLog( 
+		dev.debugLog(
 			'success',
 			`${targetActor.name}: +${actualGain} from ${damageValue} damage | ${displayBefore} → ${displayAfter}`,
 		);
 
-		lines.push(
-			`<div class="hbm-row" data-actor-uuid="${targetActor.uuid}"><span class="hbm-name">${targetActor.name}</span><span class="hbm-resource">${Soul.usesDisplay(targetItem)}</span><span class="hbm-delta hbm-delta--gain">+${actualGain}</span><span class="hbm-type">${game.i18n.localize('XHM.Chat.Taken')}</span></div>`,
-		);
+		return `<div class="hbm-row" data-actor-uuid="${targetActor.uuid}"><span class="hbm-name">${targetActor.name}</span><span class="hbm-resource">${Soul.usesDisplay(targetItem)}</span><span class="hbm-delta hbm-delta--gain">+${actualGain}</span><span class="hbm-type">${game.i18n.localize('XHM.Chat.Taken')}</span></div>`;
 	}
 
 	// ── Long Rest Reset ────────────────────────────────────────────────────────

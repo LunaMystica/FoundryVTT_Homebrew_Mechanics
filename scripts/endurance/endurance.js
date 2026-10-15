@@ -4,6 +4,7 @@ import { endurance_broken_effect } from './effects.js';
 import { dev } from '../core/dev.js';
 import { chatLog } from '../core/chat-log.js';
 import { isSoul } from '../soul/soul.js';
+import { mapSerialPerKey } from '../core/async-utils.js';
 
 class Endurance {
 	#chatMessages = [];
@@ -66,10 +67,10 @@ class Endurance {
 	 * Resolves an actor and their endurance item from a damage target entry.
 	 * Returns null if either cannot be resolved or the actor is not hit.
 	 * @param {Object} target
-	 * @returns {Promise<{ actor: Actor, enduranceItem: Item } | null>}
+	 * @returns {{ actor: Actor, enduranceItem: Item } | null}
 	 */
-	static async resolveTarget(target) {
-		const actor = await fromUuid(target.actorUuid);
+	static resolveTarget(target) {
+		const actor = fromUuidSync(target.actorUuid);
 		if (!actor) return null;
 
 		const enduranceItem = actor.items.getName('Endurance');
@@ -141,41 +142,50 @@ class Endurance {
 		if (shouldTrackHit)
 			dev.debugLog('info', `lastHit tracking: ${alreadyProcessed.size} already-processed this turn`);
 
-		// ── Filter valid targets up front, resolving actors in parallel ────────
-		const validTargets = (
-			await Promise.all(
-				damageList.map(async (target) => {
-					const name = () => fromUuidSync(target.actorUuid)?.name ?? target.actorUuid;
+		// ── Filter valid targets up front (actors are world docs — synchronous) ─
+		const validTargets = damageList
+			.map((target) => {
+				const name = () => fromUuidSync(target.actorUuid)?.name ?? target.actorUuid;
 
-					if (alreadyProcessed.has(target.targetUuid)) {
-						dev.debugLog('info', `Skip ${name()} — already processed this turn`);
-						return null;
-					}
+				if (alreadyProcessed.has(target.targetUuid)) {
+					dev.debugLog('info', `Skip ${name()} — already processed this turn`);
+					return null;
+				}
 
-					const tookDamage = (target.hpDamage ?? 0) > 0 || (target.appliedDamage ?? 0) > 0;
-					if (!tookDamage) {
-						dev.debugLog('info', `Skip ${name()} — took no damage`);
-						return null;
-					}
+				const tookDamage = (target.hpDamage ?? 0) > 0 || (target.appliedDamage ?? 0) > 0;
+				if (!tookDamage) {
+					dev.debugLog('info', `Skip ${name()} — took no damage`);
+					return null;
+				}
 
-					const resolved = await Endurance.resolveTarget(target);
-					if (!resolved) {
-						dev.debugLog('warning', `Could not resolve actor or endurance item: ${name()}`);
-						return null;
-					}
+				const resolved = Endurance.resolveTarget(target);
+				if (!resolved) {
+					dev.debugLog('warning', `Could not resolve actor or endurance item: ${name()}`);
+					return null;
+				}
 
-					return { ...resolved, target };
-				}),
-			)
-		).filter(Boolean);
+				return { ...resolved, target };
+			})
+			.filter(Boolean);
 
 		dev.debugLog('info', `${validTargets.length} valid target${validTargets.length !== 1 ? 's' : ''} to process`);
 
-		// ── Process each valid target sequentially (updates must be ordered) ───
+		// ── Process actors in parallel; tokens sharing an actor run in order ──
+		// (two tokens of one linked actor share its Endurance item, so their updates must not race)
+		const results = await mapSerialPerKey(
+			validTargets,
+			({ actor }) => actor.uuid,
+			({ actor, enduranceItem, target }) => {
+				dev.debugLog('info', `Processing ${actor.name} (${target.hpDamage} HP damage)`);
+				return this._updateEndurance(actor, enduranceItem, target, workflow);
+			},
+		);
+
 		const brokenTargets = [];
-		for (const { actor, enduranceItem, target } of validTargets) {
-			dev.debugLog('info', `Processing ${actor.name} (${target.hpDamage} HP damage)`);
-			await this._updateEndurance(actor, enduranceItem, target, workflow, brokenTargets);
+		for (const result of results) {
+			if (!result) continue;
+			this.#chatMessages.push(result.line);
+			if (result.broken) brokenTargets.push(result.broken);
 		}
 
 		dev.debugLog(
@@ -235,7 +245,7 @@ class Endurance {
 
 		// ── Break endurance and fire damage roll in parallel ───────────────────
 		await Promise.all([
-			this._applyBreak(actor, enduranceItem, damageType, null),
+			this._applyBreak(actor, enduranceItem),
 			this._fireSyntheticRoll(damageType, damageAmount, sourceActor, [targetToken], {
 				ignoreTraits: ['idr', 'idv', 'idi', 'idm', 'ida'],
 			}),
@@ -251,15 +261,16 @@ class Endurance {
 
 	/**
 	 * Updates endurance for a single target. If a weakness match is found and
-	 * reduction causes endurance to break, pushes the target onto brokenTargets.
+	 * reduction causes endurance to break, applies the broken effect and reports it.
 	 *
 	 * @param {Actor} targetActor
 	 * @param {Item} enduranceItem - Pre-resolved endurance item for the actor.
 	 * @param {Object} target - The damage target entry from the workflow.
 	 * @param {Workflow} workflow
-	 * @param {Array<{ target: Token, damageType: string }>} brokenTargets - Mutated in place.
+	 * @returns {Promise<{ line: string, broken: { target: Token, damageType: string } | null } | null>}
+	 *   The chat-row line plus any break info, or null if the target was skipped.
 	 */
-	async _updateEndurance(targetActor, enduranceItem, target, workflow, brokenTargets) {
+	async _updateEndurance(targetActor, enduranceItem, target, workflow) {
 		dev.debugGroupStart(`Update — ${targetActor.name}`);
 
 		const isCritical = workflow.isCritical ?? false;
@@ -272,14 +283,14 @@ class Endurance {
 		if (reduction === 0) {
 			dev.debugLog('warning', 'Reduction is 0 — skipping');
 			dev.debugGroupEnd();
-			return;
+			return null;
 		}
 
 		const weaknesses = new Set(targetActor.system.traits.dv.value);
 		if (weaknesses.size === 0) {
 			dev.debugLog('info', `${targetActor.name} has no weaknesses — skipping`);
 			dev.debugGroupEnd();
-			return;
+			return null;
 		}
 
 		dev.debugLog('info', `Weaknesses: [${Array.from(weaknesses).join(', ')}]`);
@@ -287,7 +298,7 @@ class Endurance {
 		if (enduranceItem.system.uses.spent >= enduranceItem.system.uses.max) {
 			dev.debugLog('info', `${targetActor.name}: already broken — skipping`);
 			dev.debugGroupEnd();
-			return;
+			return null;
 		}
 
 		dev.debugLog('info', `Current endurance: ${Endurance.usesDisplay(enduranceItem)}`);
@@ -296,7 +307,7 @@ class Endurance {
 		if (!matchedRoll) {
 			dev.debugLog('info', `${targetActor.name}: no weakness matched — skipping`);
 			dev.debugGroupEnd();
-			return;
+			return null;
 		}
 
 		const damageType = matchedRoll.options.type;
@@ -306,26 +317,30 @@ class Endurance {
 		const broken = newSpent >= enduranceItem.system.uses.max;
 		const displayBefore = Endurance.usesDisplay(enduranceItem);
 		const displayAfter = `${enduranceItem.system.uses.max - newSpent}/${enduranceItem.system.uses.max}`;
-
-		await genericUtils.update(enduranceItem, { 'system.uses.spent': newSpent });
 		dev.debugLog(
-			'success',
+			'info',
 			`${targetActor.name}: ${damageType} (-${actualReduction}) | ${displayBefore} → ${displayAfter}${broken ? ' | BROKEN' : ''}`,
 		);
 
+		// Close the group before awaiting: targets run in parallel, so a group left
+		// open across an await would swallow other targets' logs.
+		dev.debugGroupEnd();
+
+		await genericUtils.update(enduranceItem, { 'system.uses.spent': newSpent });
+		dev.debugLog('success', `${targetActor.name}: endurance updated to ${displayAfter}`);
+
+		let brokenInfo = null;
 		if (broken) {
-			const targetTokenDocument = await fromUuid(target.targetUuid);
+			const targetTokenDocument = fromUuidSync(target.targetUuid);
 			const targetToken = canvas.tokens.get(targetTokenDocument.id);
-			brokenTargets.push({ target: targetToken, damageType });
-			await this._applyBreak(targetActor, enduranceItem, damageType, null);
+			brokenInfo = { target: targetToken, damageType };
+			await this._applyBreak(targetActor, enduranceItem);
 		}
 
 		const brokenBadge = broken ? ` <span class="hbm-broken">${game.i18n.localize('XHM.Chat.Broken')}</span>` : '';
-		this.#chatMessages.push(
-			`<div class="hbm-row" data-actor-uuid="${targetActor.uuid}"><span class="hbm-name">${targetActor.name}</span><span class="hbm-resource">${Endurance.usesDisplay(enduranceItem)}</span><span class="hbm-delta hbm-delta--loss">−${actualReduction}</span><span class="hbm-type">${damageType}</span>${brokenBadge}</div>`,
-		);
+		const line = `<div class="hbm-row" data-actor-uuid="${targetActor.uuid}"><span class="hbm-name">${targetActor.name}</span><span class="hbm-resource">${Endurance.usesDisplay(enduranceItem)}</span><span class="hbm-delta hbm-delta--loss">−${actualReduction}</span><span class="hbm-type">${damageType}</span>${brokenBadge}</div>`;
 
-		dev.debugGroupEnd();
+		return { line, broken: brokenInfo };
 	}
 
 	// ── Break Helpers ──────────────────────────────────────────────────────────
@@ -336,12 +351,12 @@ class Endurance {
 	 *
 	 * @param {Actor} actor
 	 * @param {Item} enduranceItem
-	 * @param {string} damageType - For logging only.
-	 * @param {string|null} chatMessageSuffix - Extra text to append to the chat entry, or null.
 	 */
-	async _applyBreak(actor, enduranceItem, damageType, chatMessageSuffix) {
-		await genericUtils.update(enduranceItem, { 'system.uses.spent': enduranceItem.system.uses.max });
-		await effectUtils.createEffect(actor, endurance_broken_effect);
+	async _applyBreak(actor, enduranceItem) {
+		await Promise.all([
+			genericUtils.update(enduranceItem, { 'system.uses.spent': enduranceItem.system.uses.max }),
+			effectUtils.createEffect(actor, endurance_broken_effect),
+		]);
 		dev.debugLog('success', `${actor.name}: broken effect applied`);
 	}
 
