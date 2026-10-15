@@ -5,6 +5,7 @@ import { dev } from '../core/dev.js';
 import { chatLog } from '../core/chat-log.js';
 import { isSoul } from '../soul/soul.js';
 import { mapSerialPerKey } from '../core/async-utils.js';
+import { escapeHtml } from '../core/html.js';
 
 class Endurance {
 	#chatMessages = [];
@@ -237,7 +238,7 @@ class Endurance {
 		}
 
 		// ── Resolve token before any async mutations ───────────────────────────
-		const targetToken = await this._resolveActorToken(actor);
+		const targetToken = this._resolveActorToken(actor);
 		if (!targetToken) {
 			dev.debugGroupEnd();
 			throw new Error(`forceBreakEndurance: no active token found for ${actor.name}`);
@@ -251,7 +252,7 @@ class Endurance {
 			}),
 		]);
 
-		const message = `<div class="hbm-card"><div class="hbm-section-header hbm-section-header--endurance">${game.i18n.localize('XHM.Chat.Endurance')}</div><div class="hbm-row" data-actor-uuid="${actor.uuid}"><span class="hbm-name">${actor.name}</span><span class="hbm-resource">0/${enduranceItem.system.uses.max}</span><span class="hbm-type">${damageType}</span><span class="hbm-broken">${game.i18n.localize('XHM.Chat.ForceBroken')}</span></div></div>`;
+		const message = `<div class="hbm-card"><div class="hbm-section-header hbm-section-header--endurance">${game.i18n.localize('XHM.Chat.Endurance')}</div><div class="hbm-row" data-actor-uuid="${actor.uuid}"><span class="hbm-name">${escapeHtml(actor.name)}</span><span class="hbm-resource">0/${enduranceItem.system.uses.max}</span><span class="hbm-type">${damageType}</span><span class="hbm-broken">${game.i18n.localize('XHM.Chat.ForceBroken')}</span></div></div>`;
 		await chatLog.send(message);
 
 		dev.debugGroupEnd();
@@ -338,7 +339,7 @@ class Endurance {
 		}
 
 		const brokenBadge = broken ? ` <span class="hbm-broken">${game.i18n.localize('XHM.Chat.Broken')}</span>` : '';
-		const line = `<div class="hbm-row" data-actor-uuid="${targetActor.uuid}"><span class="hbm-name">${targetActor.name}</span><span class="hbm-resource">${Endurance.usesDisplay(enduranceItem)}</span><span class="hbm-delta hbm-delta--loss">−${actualReduction}</span><span class="hbm-type">${damageType}</span>${brokenBadge}</div>`;
+		const line = `<div class="hbm-row" data-actor-uuid="${targetActor.uuid}"><span class="hbm-name">${escapeHtml(targetActor.name)}</span><span class="hbm-resource">${Endurance.usesDisplay(enduranceItem)}</span><span class="hbm-delta hbm-delta--loss">−${actualReduction}</span><span class="hbm-type">${damageType}</span>${brokenBadge}</div>`;
 
 		return { line, broken: brokenInfo };
 	}
@@ -416,7 +417,7 @@ class Endurance {
 	 * @param {Actor} actor
 	 * @returns {Token | null}
 	 */
-	async _resolveActorToken(actor) {
+	_resolveActorToken(actor) {
 		const tokens = actor.getActiveTokens();
 		if (tokens.length === 0) {
 			dev.debugLog('warning', `No active tokens found for ${actor.name}`);

@@ -3,6 +3,7 @@ const { utils: { genericUtils } } = chrisPremades;
 
 import { dev } from '../core/dev.js';
 import { mapSerialPerKey } from '../core/async-utils.js';
+import { escapeHtml } from '../core/html.js';
 
 class Soul {
 	// ── Helpers ────────────────────────────────────────────────────────────────
@@ -143,7 +144,7 @@ class Soul {
 		dev.debugLog('success', `${actor.name}: +${actualGain} | ${displayBefore} → ${displayAfter}`);
 
 		dev.debugGroupEnd();
-		return `<div class="hbm-row" data-actor-uuid="${actor.uuid}"><span class="hbm-name">${actor.name}</span><span class="hbm-resource">${Soul.usesDisplay(sourceItem)}</span><span class="hbm-delta hbm-delta--gain">+${actualGain}</span><span class="hbm-type">${game.i18n.localize('XHM.Chat.Attack')}</span></div>`;
+		return `<div class="hbm-row" data-actor-uuid="${actor.uuid}"><span class="hbm-name">${escapeHtml(actor.name)}</span><span class="hbm-resource">${Soul.usesDisplay(sourceItem)}</span><span class="hbm-delta hbm-delta--gain">+${actualGain}</span><span class="hbm-type">${game.i18n.localize('XHM.Chat.Attack')}</span></div>`;
 	}
 
 	// ── Target Gain ────────────────────────────────────────────────────────────
@@ -245,7 +246,7 @@ class Soul {
 			`${targetActor.name}: +${actualGain} from ${damageValue} damage | ${displayBefore} → ${displayAfter}`,
 		);
 
-		return `<div class="hbm-row" data-actor-uuid="${targetActor.uuid}"><span class="hbm-name">${targetActor.name}</span><span class="hbm-resource">${Soul.usesDisplay(targetItem)}</span><span class="hbm-delta hbm-delta--gain">+${actualGain}</span><span class="hbm-type">${game.i18n.localize('XHM.Chat.Taken')}</span></div>`;
+		return `<div class="hbm-row" data-actor-uuid="${targetActor.uuid}"><span class="hbm-name">${escapeHtml(targetActor.name)}</span><span class="hbm-resource">${Soul.usesDisplay(targetItem)}</span><span class="hbm-delta hbm-delta--gain">+${actualGain}</span><span class="hbm-type">${game.i18n.localize('XHM.Chat.Taken')}</span></div>`;
 	}
 
 	// ── Long Rest Reset ────────────────────────────────────────────────────────
