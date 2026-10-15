@@ -25,9 +25,10 @@ export async function reloadEveryone({ confirm = true } = {}) {
 
 /**
  * Settings-menu "app" that reloads everyone instead of opening a window.
- * The settings window only calls `new type()` and `render()` on menu types.
+ * `registerMenu` requires an ApplicationV2 (or FormApplication) subclass; the
+ * settings window then calls `new type()` and `render()`, which we repurpose.
  */
-export class ReloadEveryoneMenu {
+export class ReloadEveryoneMenu extends foundry.applications.api.ApplicationV2 {
 	async render() {
 		await reloadEveryone();
 		return this;
