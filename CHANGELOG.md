@@ -5,6 +5,30 @@ All notable changes to this module are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Click an actor's name in an HBM chat card to pan to (and select, if owned) their token on the current scene.
+- Meter bar inputs accept relative and absolute entries (`+5`, `-5`, `=12`), like dnd5e's HP fields.
+- `Soul Long Rest Reset` world setting (off by default) to restore Soul to full on a long rest.
+- Foundry hot reload for CSS, Handlebars and JSON files during development.
+
+### Changed
+
+- Multi-target attacks grant the attacker 4 Soul per hit target instead of a flat 4.
+- The Soul long-rest reset is now opt-in (it was disabled, then made a setting).
+- All user-facing strings moved to `language/en.json`.
+- Endurance and Soul process hit targets in parallel, so large AoEs resolve faster.
+- Verified on Foundry v13.
+
+### Fixed
+
+- Two tokens of the same linked actor hit by one attack no longer race each other's Endurance/Soul updates (which could lose a reduction or apply the broken effect twice).
+- Actor names are HTML-escaped in chat cards.
+- The Endurance broken effect no longer errors on removal if the actor has no Endurance item.
+- Debug console groups no longer stay open after damage-less activities.
+
 ## [1.3.1] - 2026-06-04
 
 ### Added
