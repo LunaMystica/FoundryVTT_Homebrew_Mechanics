@@ -55,6 +55,22 @@
 				"Full": "Full: value and weaknesses",
 				"Bar": "Bar only: no numbers or weaknesses",
 				"None": "Hidden"
+			},
+			"BreakFx": {
+				"Name": "Endurance Break Effects",
+				"Hint": "Plays a floating \"BREAK!\" text, sound and screen shake when Endurance breaks. Uses Sequencer (if active) so everyone viewing the scene sees it."
+			},
+			"BreakFxSound": {
+				"Name": "Endurance Break Sound",
+				"Hint": "Sound played on a break. Leave blank for no sound."
+			},
+			"BreakFxFile": {
+				"Name": "Endurance Break Animation",
+				"Hint": "Optional animation file (e.g. a JB2A .webm) played on the broken token. Requires Sequencer. Leave blank for none."
+			},
+			"BreakFxShake": {
+				"Name": "Endurance Break Screen Shake",
+				"Hint": "Briefly shakes the screen of everyone viewing the scene on a break. Requires Sequencer."
 			}
 		},
 		"Menu": {
@@ -137,6 +153,9 @@
 			"Endurance": "Endurance",
 			"Weaknesses": "Weak to",
 			"BrokenHint": "Broken until the start of its next turn."
+		},
+		"BreakFx": {
+			"Text": "BREAK!"
 		}
 	}
 }

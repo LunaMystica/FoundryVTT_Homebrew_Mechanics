@@ -7,6 +7,7 @@ import { isSoul } from '../soul/soul.js';
 import { mapSerialPerKey } from '../core/async-utils.js';
 import { escapeHtml } from '../core/html.js';
 import { getEnduranceMode, getEnduranceReduction } from '../values/values.js';
+import { playBreakFx } from './break-fx.js';
 
 class Endurance {
 	#chatMessages = [];
@@ -255,7 +256,7 @@ class Endurance {
 
 		// ── Break endurance and fire damage roll in parallel ───────────────────
 		await Promise.all([
-			this._applyBreak(actor, enduranceItem),
+			this._applyBreak(actor, enduranceItem, targetToken),
 			this._fireSyntheticRoll(damageType, damageAmount, sourceActor, [targetToken], {
 				ignoreTraits: ['idr', 'idv', 'idi', 'idm', 'ida'],
 			}),
@@ -346,7 +347,7 @@ class Endurance {
 			const targetTokenDocument = fromUuidSync(target.targetUuid);
 			const targetToken = canvas.tokens.get(targetTokenDocument.id);
 			brokenInfo = { target: targetToken, damageType };
-			await this._applyBreak(targetActor, enduranceItem);
+			await this._applyBreak(targetActor, enduranceItem, targetToken);
 		}
 
 		const brokenBadge = broken ? ` <span class="hbm-broken">${game.i18n.localize('XHM.Chat.Broken')}</span>` : '';
@@ -358,18 +359,20 @@ class Endurance {
 	// ── Break Helpers ──────────────────────────────────────────────────────────
 
 	/**
-	 * Maxes out an endurance item's spent value and applies the broken effect.
-	 * Shared between normal break flow and forceBreakEndurance.
+	 * Maxes out an endurance item's spent value, applies the broken effect and
+	 * plays the break FX. Shared between normal break flow and forceBreakEndurance.
 	 *
 	 * @param {Actor} actor
 	 * @param {Item} enduranceItem
+	 * @param {Token|null} token - The token to play the break FX on.
 	 */
-	async _applyBreak(actor, enduranceItem) {
+	async _applyBreak(actor, enduranceItem, token) {
 		await Promise.all([
 			genericUtils.update(enduranceItem, { 'system.uses.spent': enduranceItem.system.uses.max }),
 			effectUtils.createEffect(actor, endurance_broken_effect),
 		]);
 		dev.debugLog('success', `${actor.name}: broken effect applied`);
+		playBreakFx(token);
 	}
 
 	/**
