@@ -44,6 +44,17 @@
 			"MeterColor": {
 				"Name": "{label} Meter Color",
 				"Hint": "Override the {label} meter colour. Leave blank to use the Tidy theme default."
+			},
+			"Tracker": {
+				"Name": "Combat Tracker Endurance",
+				"Hint": "Shows each combatant's Endurance (and weaknesses) on the combat tracker."
+			},
+			"TrackerVisibility": {
+				"Name": "Combat Tracker Endurance Visibility",
+				"Hint": "What players see for combatants they are not at least an Observer of. The GM and owners/observers always see everything.",
+				"Full": "Full: value and weaknesses",
+				"Bar": "Bar only: no numbers or weaknesses",
+				"None": "Hidden"
 			}
 		},
 		"Menu": {
@@ -121,6 +132,11 @@
 				"Name": "Also bypass resistance & immunity",
 				"Hint": "Requires \"Ignore weaknesses\". Reduce Endurance on any hit, even through resistance or immunity."
 			}
+		},
+		"Tracker": {
+			"Endurance": "Endurance",
+			"Weaknesses": "Weak to",
+			"BrokenHint": "Broken until the start of its next turn."
 		}
 	}
 }

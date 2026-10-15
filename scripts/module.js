@@ -1,4 +1,4 @@
-import { endurance, soul, meters, meterColors, dev, chatLog } from './index.js';
+import { endurance, soul, meters, meterColors, tracker, dev, chatLog } from './index.js';
 import { EnduranceBreakConfig } from './endurance/break-config.js';
 import { damageTypeFeatures } from './endurance/damage-type-features.js';
 import { ValuesConfig } from './values/values-config.js';
@@ -91,6 +91,27 @@ Hooks.once('init', () => {
 			default: true,
 		},
 		{
+			key: 'tracker-toggle',
+			name: 'XHM.Settings.Tracker.Name',
+			hint: 'XHM.Settings.Tracker.Hint',
+			type: Boolean,
+			default: true,
+			onChange: () => tracker.refresh(),
+		},
+		{
+			key: 'tracker-visibility',
+			name: 'XHM.Settings.TrackerVisibility.Name',
+			hint: 'XHM.Settings.TrackerVisibility.Hint',
+			type: String,
+			choices: {
+				full: 'XHM.Settings.TrackerVisibility.Full',
+				bar: 'XHM.Settings.TrackerVisibility.Bar',
+				none: 'XHM.Settings.TrackerVisibility.None',
+			},
+			default: 'bar',
+			onChange: () => tracker.refresh(),
+		},
+		{
 			key: 'hide-messages-toggle',
 			name: 'XHM.Settings.HideMessages.Name',
 			hint: 'XHM.Settings.HideMessages.Hint',
@@ -130,6 +151,7 @@ Hooks.once('init', () => {
 		});
 	}
 
+	tracker.register();
 	registerItemOverrideControls();
 
 	console.log('xeno-homebrew-mechanics | Loaded');
@@ -157,7 +179,7 @@ Hooks.once('i18nInit', () => {
 // ── Global API ─────────────────────────────────────────────────────────────────
 
 Hooks.once('ready', () => {
-	globalThis['xenoHomebrewMechanics'] = { endurance, soul, meters, dev, chatLog };
+	globalThis['xenoHomebrewMechanics'] = { endurance, soul, meters, tracker, dev, chatLog };
 	meters.applyColors();
 	dev.debugLog('info', 'Global API registered on xenoHomebrewMechanics');
 });

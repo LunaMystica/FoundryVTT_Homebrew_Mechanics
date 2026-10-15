@@ -439,6 +439,97 @@
 	text-align: right;
 }
 
+/* ── Combat Tracker Endurance ───────────────────────────────────────────────── */
+
+.hbm-tracker {
+	--hbm-tracker-color: #d64545;
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	margin-top: 2px;
+	font-size: 0.7rem;
+	line-height: 1;
+	min-width: 0;
+}
+
+.hbm-tracker__icon {
+	flex: none;
+	font-size: 0.85em;
+	color: var(--hbm-tracker-color);
+}
+
+.hbm-tracker__track {
+	flex: 1 1 auto;
+	min-width: 2.5rem;
+	max-width: 6rem;
+	height: 5px;
+	border-radius: 3px;
+	background: rgba(0, 0, 0, 0.45);
+	box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+	overflow: hidden;
+}
+
+.hbm-tracker__fill {
+	display: block;
+	width: var(--hbm-tracker-pct, 100%);
+	height: 100%;
+	background: var(--hbm-tracker-color);
+	transition: width 0.3s ease;
+}
+
+.hbm-tracker__count {
+	flex: none;
+	font-variant-numeric: tabular-nums;
+	opacity: 0.85;
+}
+
+.hbm-tracker__weak {
+	display: inline-flex;
+	flex: none;
+	gap: 2px;
+}
+
+.hbm-tracker__weak dnd5e-icon,
+.hbm-tracker__weak img {
+	width: 12px;
+	height: 12px;
+	border: none;
+}
+
+.hbm-tracker__more {
+	font-size: 0.9em;
+	font-weight: 700;
+	opacity: 0.8;
+}
+
+.hbm-tracker__weak-text {
+	font-size: 0.9em;
+	font-weight: 700;
+}
+
+.hbm-tracker--critical .hbm-tracker__track {
+	animation: hbm-critical-pulse 2.5s ease-in-out infinite;
+}
+
+.hbm-tracker--broken .hbm-tracker__track {
+	display: none;
+}
+
+.hbm-tracker--broken .hbm-tracker__icon,
+.hbm-tracker--broken .hbm-tracker__count {
+	color: #ff5a3c;
+	font-weight: 700;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.hbm-tracker--critical .hbm-tracker__track {
+		animation: none;
+	}
+}
+
 /* ── Item Overrides Dialog ──────────────────────────────────────────────────── */
 
 .form-group.xhm-override-sub {
