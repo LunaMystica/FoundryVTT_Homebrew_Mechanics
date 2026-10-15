@@ -3,3 +3,5 @@
 WARP.md
 CLAUDE.md
 node_modules/
+.vscode/launch.json
+.vscode/tasks.json
