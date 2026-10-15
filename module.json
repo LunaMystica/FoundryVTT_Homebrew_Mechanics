@@ -47,6 +47,12 @@
 	"download": "#{DOWNLOAD}#",
 	"license": "LICENSE",
 	"readme": "README.md",
+	"flags": {
+		"hotReload": {
+			"extensions": ["css", "hbs", "json"],
+			"paths": ["styles", "scripts", "language"]
+		}
+	},
 	"media": [
 		{
 			"type": "icon",
